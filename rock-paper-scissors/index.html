@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가위바위보</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>가위바위보</h1>
+
+        <!-- 선택 버튼 영역 -->
+        <div class="choices">
+            <button class="choice-btn" data-choice="scissors">✌️ 가위</button>
+            <button class="choice-btn" data-choice="rock">✊ 바위</button>
+            <button class="choice-btn" data-choice="paper">🖐️ 보</button>
+        </div>
+
+        <!-- 결과 표시 영역 -->
+        <div class="result">
+            <span class="player-choice">-</span>
+            <span class="result-text">선택하세요</span>
+            <span class="computer-choice">-</span>
+        </div>
+
+        <!-- 전적 표시 영역 -->
+        <div class="scoreboard">
+            <span>승: <span id="wins">0</span></span>
+            <span>패: <span id="losses">0</span></span>
+            <span>무: <span id="draws">0</span></span>
+        </div>
+
+        <!-- 리셋 버튼 -->
+        <button class="reset-btn">전적 초기화</button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

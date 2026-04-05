@@ -1,0 +1,130 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    text-align: center;
+    max-width: 480px;
+    width: 90%;
+}
+
+h1 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+/* 선택 버튼 영역 */
+.choices {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.choice-btn {
+    font-size: 1.4rem;
+    min-width: 100px;
+    min-height: 60px;
+    padding: 0.8rem 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.choice-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #4ecca3;
+    transform: scale(1.08);
+}
+
+.choice-btn:active {
+    transform: scale(0.95);
+}
+
+/* 결과 표시 영역 */
+.result {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    min-height: 80px;
+}
+
+.player-choice,
+.computer-choice {
+    font-size: 3rem;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+}
+
+.result-text {
+    font-size: 1.3rem;
+    font-weight: bold;
+    min-width: 120px;
+}
+
+.result-text.win { color: #4ecca3; }
+.result-text.lose { color: #e94560; }
+.result-text.draw { color: #f9ed69; }
+
+/* 전적 표시 영역 */
+.scoreboard {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+}
+
+.scoreboard > span {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+}
+
+/* 리셋 버튼 */
+.reset-btn {
+    padding: 0.6rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.reset-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 애니메이션 */
+@keyframes pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.animate {
+    animation: pop 0.3s ease-out;
+}

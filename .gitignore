@@ -1,0 +1,23 @@
+# Claude session data
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+
+# Conda
+envs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Node
+node_modules/
