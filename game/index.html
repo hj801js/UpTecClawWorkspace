@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake Game</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #e0e0e0;
+    overflow: hidden;
+  }
+
+  .game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 420px;
+    padding: 16px;
+  }
+
+  .score-board {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 400px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .score-board .current { color: #e94560; }
+  .score-board .best { color: #0f3460; }
+
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1;
+    border: 2px solid #16213e;
+    border-radius: 4px;
+    background: #1a1a2e;
+    touch-action: none;
+  }
+
+  .hint {
+    font-size: 13px;
+    color: #555;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="game-container">
+  <div class="score-board">
+    <span class="current">Score: <span id="score">0</span></span>
+    <span class="best">Best: <span id="best">0</span></span>
+  </div>
+  <canvas id="board" width="400" height="400"></canvas>
+  <div class="hint" id="hint">Press Space or Tap to Start</div>
+</div>
+
+<script>
+'use strict';
+
+// --- Constants ---
+const CELL = 20;
+const COLS = 20;
+const ROWS = 20;
+const BASE_INTERVAL = 150;
+const MIN_INTERVAL = 60;
+const SPEED_STEP = 5;
+const MIN_SWIPE = 30;
+
+const DIR = {
+  UP:    { x:  0, y: -1 },
+  DOWN:  { x:  0, y:  1 },
+  LEFT:  { x: -1, y:  0 },
+  RIGHT: { x:  1, y:  0 },
+};
+
+const STATE = { READY: 0, PLAYING: 1, GAMEOVER: 2, WIN: 3 };
+
+// --- Snake ---
+class Snake {
+  constructor() { this.reset(); }
+
+  reset() {
+    const cx = Math.floor(COLS / 2);
+    const cy = Math.floor(ROWS / 2);
+    this.body = [
+      { x: cx, y: cy },
+      { x: cx - 1, y: cy },
+      { x: cx - 2, y: cy },
+    ];
+    this.direction = DIR.RIGHT;
+    this.growing = false;
+  }
+
+  head() { return this.body[0]; }
+
+  setDirection(dir) {
+    if (dir.x + this.direction.x === 0 && dir.y + this.direction.y === 0) return;
+    this.direction = dir;
+  }
+
+  move() {
+    const h = this.head();
+    const next = { x: h.x + this.direction.x, y: h.y + this.direction.y };
+    this.body.unshift(next);
+    if (this.growing) {
+      this.growing = false;
+    } else {
+      this.body.pop();
+    }
+  }
+
+  grow() { this.growing = true; }
+
+  collidesWall() {
+    const h = this.head();
+    return h.x < 0 || h.x >= COLS || h.y < 0 || h.y >= ROWS;
+  }
+
+  collidesSelf() {
+    const h = this.head();
+    for (let i = 1; i < this.body.length; i++) {
+      if (this.body[i].x === h.x && this.body[i].y === h.y) return true;
+    }
+    return false;
+  }
+
+  occupies(x, y) {
+    return this.body.some(s => s.x === x && s.y === y);
+  }
+}
+
+// --- Food ---
+class Food {
+  constructor() { this.pos = { x: 0, y: 0 }; }
+
+  spawn(snake) {
+    const free = [];
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        if (!snake.occupies(x, y)) free.push({ x, y });
+      }
+    }
+    if (free.length === 0) return false;
+    this.pos = free[Math.floor(Math.random() * free.length)];
+    return true;
+  }
+}
+
+// --- InputHandler ---
+class InputHandler {
+  constructor(canvas, onDirection, onAction) {
+    this.onDirection = onDirection;
+    this.onAction = onAction;
+    this.touchStart = null;
+
+    document.addEventListener('keydown', e => this._onKey(e));
+    canvas.addEventListener('touchstart', e => this._onTouchStart(e), { passive: false });
+    canvas.addEventListener('touchend', e => this._onTouchEnd(e), { passive: false });
+    canvas.addEventListener('click', () => this.onAction());
+  }
+
+  _onKey(e) {
+    switch (e.key) {
+      case 'ArrowUp':    e.preventDefault(); this.onDirection(DIR.UP); break;
+      case 'ArrowDown':  e.preventDefault(); this.onDirection(DIR.DOWN); break;
+      case 'ArrowLeft':  e.preventDefault(); this.onDirection(DIR.LEFT); break;
+      case 'ArrowRight': e.preventDefault(); this.onDirection(DIR.RIGHT); break;
+      case ' ':
+      case 'Enter':      e.preventDefault(); this.onAction(); break;
+    }
+  }
+
+  _onTouchStart(e) {
+    e.preventDefault();
+    const t = e.touches[0];
+    this.touchStart = { x: t.clientX, y: t.clientY };
+  }
+
+  _onTouchEnd(e) {
+    e.preventDefault();
+    if (!this.touchStart) { this.onAction(); return; }
+    const t = e.changedTouches[0];
+    const dx = t.clientX - this.touchStart.x;
+    const dy = t.clientY - this.touchStart.y;
+    this.touchStart = null;
+
+    if (Math.abs(dx) < MIN_SWIPE && Math.abs(dy) < MIN_SWIPE) {
+      this.onAction();
+      return;
+    }
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      this.onDirection(dx > 0 ? DIR.RIGHT : DIR.LEFT);
+    } else {
+      this.onDirection(dy > 0 ? DIR.DOWN : DIR.UP);
+    }
+  }
+}
+
+// --- Renderer ---
+class Renderer {
+  constructor(canvas) {
+    this.ctx = canvas.getContext('2d');
+    this.w = canvas.width;
+    this.h = canvas.height;
+  }
+
+  clear() {
+    const ctx = this.ctx;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        ctx.fillStyle = (r + c) % 2 === 0 ? '#1a1a2e' : '#16213e';
+        ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+      }
+    }
+  }
+
+  drawSnake(snake) {
+    const ctx = this.ctx;
+    const len = snake.body.length;
+    for (let i = len - 1; i >= 0; i--) {
+      const s = snake.body[i];
+      if (i === 0) {
+        ctx.fillStyle = '#e94560';
+      } else {
+        const t = 1 - (i / len) * 0.6;
+        const r = Math.round(15 + (50 - 15) * t);
+        const g = Math.round(52 + (100 - 52) * t);
+        const b = Math.round(96 + (160 - 96) * t);
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+      }
+      const pad = i === 0 ? 1 : 2;
+      ctx.fillRect(s.x * CELL + pad, s.y * CELL + pad, CELL - pad * 2, CELL - pad * 2);
+    }
+  }
+
+  drawFood(food) {
+    const ctx = this.ctx;
+    const cx = food.pos.x * CELL + CELL / 2;
+    const cy = food.pos.y * CELL + CELL / 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, CELL / 2 - 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#e94560';
+    ctx.fill();
+  }
+
+  drawOverlay(lines) {
+    const ctx = this.ctx;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    ctx.fillRect(0, 0, this.w, this.h);
+    ctx.fillStyle = '#e0e0e0';
+    ctx.textAlign = 'center';
+    const startY = this.h / 2 - (lines.length - 1) * 18;
+    lines.forEach((line, i) => {
+      ctx.font = i === 0 ? 'bold 28px sans-serif' : '16px sans-serif';
+      ctx.fillText(line, this.w / 2, startY + i * 36);
+    });
+  }
+}
+
+// --- ScoreManager ---
+class ScoreManager {
+  constructor() {
+    this.score = 0;
+    this.best = this._load();
+    this._scoreEl = document.getElementById('score');
+    this._bestEl = document.getElementById('best');
+    this._update();
+  }
+
+  reset() { this.score = 0; this._update(); }
+
+  add() {
+    this.score += 1;
+    if (this.score > this.best) {
+      this.best = this.score;
+      this._save();
+    }
+    this._update();
+  }
+
+  _load() {
+    try { return parseInt(localStorage.getItem('snake_best') || '0', 10); }
+    catch { return 0; }
+  }
+
+  _save() {
+    try { localStorage.setItem('snake_best', String(this.best)); }
+    catch { /* storage unavailable */ }
+  }
+
+  _update() {
+    this._scoreEl.textContent = this.score;
+    this._bestEl.textContent = this.best;
+  }
+}
+
+// --- Game ---
+class Game {
+  constructor() {
+    this.canvas = document.getElementById('board');
+    this.hint = document.getElementById('hint');
+    this.snake = new Snake();
+    this.food = new Food();
+    this.renderer = new Renderer(this.canvas);
+    this.scoreManager = new ScoreManager();
+    this.input = new InputHandler(
+      this.canvas,
+      dir => this._onDirection(dir),
+      () => this._onAction(),
+    );
+
+    this.state = STATE.READY;
+    this.elapsed = 0;
+    this.lastTime = 0;
+
+    this.food.spawn(this.snake);
+    this._render();
+    this._showOverlay();
+    requestAnimationFrame(t => this._loop(t));
+  }
+
+  _interval() {
+    return Math.max(MIN_INTERVAL, BASE_INTERVAL - this.scoreManager.score * SPEED_STEP);
+  }
+
+  _onDirection(dir) {
+    if (this.state === STATE.PLAYING) {
+      this.snake.setDirection(dir);
+    }
+  }
+
+  _onAction() {
+    if (this.state === STATE.READY) {
+      this.state = STATE.PLAYING;
+      this.hint.textContent = '';
+    } else if (this.state === STATE.GAMEOVER || this.state === STATE.WIN) {
+      this.snake.reset();
+      this.food.spawn(this.snake);
+      this.scoreManager.reset();
+      this.elapsed = 0;
+      this.state = STATE.PLAYING;
+      this.hint.textContent = '';
+    }
+  }
+
+  _loop(timestamp) {
+    if (this.state === STATE.PLAYING) {
+      const dt = timestamp - this.lastTime;
+      this.elapsed += dt;
+      if (this.elapsed >= this._interval()) {
+        this.elapsed = 0;
+        this._update();
+      }
+    }
+    this.lastTime = timestamp;
+    this._render();
+    requestAnimationFrame(t => this._loop(t));
+  }
+
+  _update() {
+    this.snake.move();
+
+    if (this.snake.collidesWall() || this.snake.collidesSelf()) {
+      this.state = STATE.GAMEOVER;
+      this._showOverlay();
+      return;
+    }
+
+    const h = this.snake.head();
+    if (h.x === this.food.pos.x && h.y === this.food.pos.y) {
+      this.snake.grow();
+      this.scoreManager.add();
+      if (!this.food.spawn(this.snake)) {
+        this.state = STATE.WIN;
+        this._showOverlay();
+        return;
+      }
+    }
+  }
+
+  _render() {
+    this.renderer.clear();
+    this.renderer.drawFood(this.food);
+    this.renderer.drawSnake(this.snake);
+
+    if (this.state === STATE.READY) {
+      this.renderer.drawOverlay(['🐍 Snake', 'Press Space or Tap to Start']);
+    } else if (this.state === STATE.GAMEOVER) {
+      this.renderer.drawOverlay([
+        'Game Over',
+        `Score: ${this.scoreManager.score}`,
+        'Press Space or Tap to Restart',
+      ]);
+    } else if (this.state === STATE.WIN) {
+      this.renderer.drawOverlay([
+        'You Win!',
+        `Score: ${this.scoreManager.score}`,
+        'Press Space or Tap to Restart',
+      ]);
+    }
+  }
+
+  _showOverlay() {
+    if (this.state === STATE.READY) {
+      this.hint.textContent = 'Press Space or Tap to Start';
+    } else if (this.state === STATE.GAMEOVER || this.state === STATE.WIN) {
+      this.hint.textContent = 'Press Space or Tap to Restart';
+    }
+  }
+}
+
+// --- Bootstrap ---
+new Game();
+</script>
+</body>
+</html>
