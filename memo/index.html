@@ -1540,7 +1540,7 @@ class MemoEditorView {
     const container = document.getElementById('memo-reminder-list');
     container.innerHTML = this._pendingReminders.map((r, idx) => {
       const dueDate = r.dueAt ? new Date(r.dueAt) : null;
-      const dateVal = dueDate ? this._toLocalDateStr(dueDate) : '';
+      const dateVal = dueDate ? toLocalDateStr(dueDate) : '';
       const timeVal = dueDate ? dueDate.toTimeString().slice(0, 5) : '';
       return `
         <div class="reminder-row" data-idx="${idx}">
@@ -1565,10 +1565,6 @@ class MemoEditorView {
     document.querySelectorAll('#color-picker .color-dot').forEach(dot => {
       dot.classList.toggle('selected', dot.dataset.color === this._selectedColor);
     });
-  }
-
-  _toLocalDateStr(d) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   _escapeAttr(str) {
@@ -1721,9 +1717,8 @@ class App {
     this._memoManager = new MemoManager(this._storage, (msg) => this._showBanner(msg));
 
     // 4. ReminderManager
-    this._reminderManager = new ReminderManager(this._storage, NotificationService, (text) => {
-      this._showBanner(text);
-    });
+    const bannerCb = (text) => this._showBanner(text);
+    this._reminderManager = new ReminderManager(this._storage, NotificationService, bannerCb, bannerCb);
 
     // 5. ThemeManager
     this._themeManager = new ThemeManager(this._storage);
@@ -1907,7 +1902,7 @@ class App {
       titleInput.value = r.title;
       if (r.dueAt) {
         const d = new Date(r.dueAt);
-        dateInput.value = this._toLocalDateStr(d);
+        dateInput.value = toLocalDateStr(d);
         timeInput.value = d.toTimeString().slice(0, 5);
       }
       memoSelect.value = r.memoId || '';
@@ -1918,7 +1913,7 @@ class App {
       titleInput.value = '';
       const now = new Date();
       now.setHours(now.getHours() + 1, 0, 0, 0);
-      dateInput.value = this._toLocalDateStr(now);
+      dateInput.value = toLocalDateStr(now);
       timeInput.value = now.toTimeString().slice(0, 5);
       memoSelect.value = '';
       deleteBtn.style.display = 'none';
