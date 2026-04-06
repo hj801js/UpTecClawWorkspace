@@ -761,14 +761,14 @@ input:focus, textarea:focus, select:focus {
   <div class="header-logo">MemoKeep</div>
   <div class="header-search">
     <div class="search-wrapper">
-      <input type="text" id="search-input" placeholder="검색...">
+      <input type="text" id="search-input" placeholder="검색..." maxlength="100" aria-label="메모 검색">
     </div>
   </div>
   <div class="header-actions">
-    <button class="icon-btn" id="btn-theme" title="테마 전환">☀️</button>
-    <button class="icon-btn" id="btn-import" title="가져오기">📥</button>
-    <button class="icon-btn" id="btn-export" title="내보내기">📤</button>
-    <button class="icon-btn" id="btn-clear-all" title="전체 삭제" style="color: var(--danger);">🗑️</button>
+    <button class="icon-btn" id="btn-theme" title="테마 전환" aria-label="테마 전환">☀️</button>
+    <button class="icon-btn" id="btn-import" title="가져오기" aria-label="데이터 가져오기">📥</button>
+    <button class="icon-btn" id="btn-export" title="내보내기" aria-label="데이터 내보내기">📤</button>
+    <button class="icon-btn" id="btn-clear-all" title="전체 삭제" aria-label="데이터 전체 삭제" style="color: var(--danger);">🗑️</button>
   </div>
 </header>
 
@@ -780,8 +780,8 @@ input:focus, textarea:focus, select:focus {
 
 <!-- Mobile Tabs -->
 <div class="mobile-tabs" id="mobile-tabs">
-  <button class="active" data-tab="memos">메모</button>
-  <button data-tab="reminders">리마인더</button>
+  <button class="active" data-tab="memos" aria-label="메모 탭">메모</button>
+  <button data-tab="reminders" aria-label="리마인더 탭">리마인더</button>
 </div>
 
 <!-- Main Content -->
@@ -794,12 +794,12 @@ input:focus, textarea:focus, select:focus {
     </div>
     <div class="sort-controls" id="sort-controls">
       <span>정렬:</span>
-      <select id="sort-by">
+      <select id="sort-by" aria-label="정렬 기준">
         <option value="updatedAt">수정일</option>
         <option value="createdAt">생성일</option>
         <option value="title">제목</option>
       </select>
-      <select id="sort-order">
+      <select id="sort-order" aria-label="정렬 순서">
         <option value="desc">최신순</option>
         <option value="asc">오래된순</option>
       </select>
@@ -826,26 +826,26 @@ input:focus, textarea:focus, select:focus {
   <div class="modal">
     <div class="modal-header">
       <h2 id="memo-modal-title">새 메모</h2>
-      <button class="modal-close" data-action="close-memo-modal">✕</button>
+      <button class="modal-close" data-action="close-memo-modal" aria-label="닫기">✕</button>
     </div>
     <div class="modal-body">
       <div>
         <label for="memo-title-input">제목</label>
-        <input type="text" id="memo-title-input" placeholder="메모 제목">
+        <input type="text" id="memo-title-input" placeholder="메모 제목" maxlength="200">
       </div>
       <div>
         <label for="memo-content-input">내용</label>
-        <textarea id="memo-content-input" placeholder="메모 내용을 입력하세요..."></textarea>
+        <textarea id="memo-content-input" placeholder="메모 내용을 입력하세요..." maxlength="10000"></textarea>
       </div>
       <div>
         <label>색상</label>
         <div class="color-picker" id="color-picker">
-          <div class="color-dot selected" data-color="yellow"></div>
-          <div class="color-dot" data-color="blue"></div>
-          <div class="color-dot" data-color="green"></div>
-          <div class="color-dot" data-color="pink"></div>
-          <div class="color-dot" data-color="purple"></div>
-          <div class="color-dot" data-color="gray"></div>
+          <div class="color-dot selected" data-color="yellow" role="button" aria-label="노랑"></div>
+          <div class="color-dot" data-color="blue" role="button" aria-label="파랑"></div>
+          <div class="color-dot" data-color="green" role="button" aria-label="초록"></div>
+          <div class="color-dot" data-color="pink" role="button" aria-label="핑크"></div>
+          <div class="color-dot" data-color="purple" role="button" aria-label="보라"></div>
+          <div class="color-dot" data-color="gray" role="button" aria-label="회색"></div>
         </div>
       </div>
       <div class="memo-reminder-section" id="memo-reminder-section">
@@ -867,13 +867,13 @@ input:focus, textarea:focus, select:focus {
   <div class="modal">
     <div class="modal-header">
       <h2 id="reminder-modal-title">새 리마인더</h2>
-      <button class="modal-close" data-action="close-reminder-modal">✕</button>
+      <button class="modal-close" data-action="close-reminder-modal" aria-label="닫기">✕</button>
     </div>
     <div class="modal-body">
       <div class="reminder-modal-fields">
         <div>
           <label for="reminder-title-input">제목</label>
-          <input type="text" id="reminder-title-input" placeholder="리마인더 제목">
+          <input type="text" id="reminder-title-input" placeholder="리마인더 제목" maxlength="200">
         </div>
         <div class="reminder-datetime-row">
           <div>
@@ -923,6 +923,16 @@ function toLocalDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function escapeAttr(str) {
+  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 /* ================================================================
    StorageAdapter — localStorage 추상화
    ================================================================ */
@@ -969,6 +979,30 @@ class StorageAdapter {
     if (!data.version || !Array.isArray(data.memos) || !Array.isArray(data.reminders)) {
       throw new Error('올바르지 않은 백업 형식입니다.');
     }
+    // Validate memo fields
+    data.memos = data.memos.filter(m =>
+      m && typeof m.id === 'string' && typeof m.createdAt === 'string'
+    ).map(m => ({
+      id: m.id,
+      title: String(m.title || ''),
+      content: String(m.content || ''),
+      color: ['yellow','blue','green','pink','purple','gray'].includes(m.color) ? m.color : 'yellow',
+      pinned: Boolean(m.pinned),
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt || m.createdAt
+    }));
+    // Validate reminder fields
+    data.reminders = data.reminders.filter(r =>
+      r && typeof r.id === 'string' && typeof r.dueAt === 'string'
+    ).map(r => ({
+      id: r.id,
+      memoId: r.memoId || null,
+      title: String(r.title || ''),
+      dueAt: r.dueAt,
+      done: Boolean(r.done),
+      notified: Boolean(r.notified),
+      createdAt: r.createdAt || new Date().toISOString()
+    }));
     this.save('memos', data.memos);
     this.save('reminders', data.reminders);
     return data;
@@ -1189,8 +1223,8 @@ class ReminderManager {
   }
 
   startPolling() {
-    this._checkDue();
-    this._pollTimer = setInterval(() => this._checkDue(), 60000);
+    this.checkDue();
+    this._pollTimer = setInterval(() => this.checkDue(), 60000);
   }
 
   stopPolling() {
@@ -1201,10 +1235,6 @@ class ReminderManager {
   }
 
   checkDue() {
-    this._checkDue();
-  }
-
-  _checkDue() {
     const now = new Date();
     let changed = false;
     const dueItems = [];
@@ -1325,10 +1355,10 @@ class MemoListView {
         <div class="memo-card memo-${memo.color}" data-id="${memo.id}">
           <div class="memo-card-header">
             <span class="memo-pin ${memo.pinned ? 'pinned' : ''}" data-action="toggle-pin" data-id="${memo.id}" title="핀 고정">📌</span>
-            <span class="memo-card-title">${this._escapeHtml(memo.title || '제목 없음')}</span>
+            <span class="memo-card-title">${escapeHtml(memo.title || '제목 없음')}</span>
             <button class="memo-card-delete" data-action="delete-memo" data-id="${memo.id}" title="삭제">✕</button>
           </div>
-          <div class="memo-card-content">${this._escapeHtml(memo.content || '')}</div>
+          <div class="memo-card-content">${escapeHtml(memo.content || '')}</div>
           <div class="memo-card-footer">
             ${reminderCount > 0 ? `<span class="memo-card-reminder-badge">🔔 ${reminderCount}건</span>` : ''}
             <span>${this._relativeTime(memo.updatedAt)}</span>
@@ -1368,11 +1398,6 @@ class MemoListView {
     });
   }
 
-  _escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
 
   _relativeTime(isoStr) {
     if (!isoStr) return '';
@@ -1469,7 +1494,7 @@ class MemoEditorView {
     // Delete
     document.getElementById('btn-delete-memo').addEventListener('click', () => {
       if (this._editingId) {
-        App.confirm('이 메모를 삭제하시겠습니까?', () => {
+        this._confirmFn('이 메모를 삭제하시겠습니까?', () => {
           this._memoManager.delete(this._editingId);
           this._reminderManager.deleteByMemoId(this._editingId);
           this.close();
@@ -1513,26 +1538,23 @@ class MemoEditorView {
   }
 
   _saveReminders(memoId) {
-    // Collect current reminder data from DOM
     const rows = document.querySelectorAll('#memo-reminder-list .reminder-row');
     const currentIds = new Set();
 
-    rows.forEach((row, idx) => {
+    rows.forEach(row => {
       const rTitle = row.querySelector('.reminder-row-title')?.value?.trim() || '';
       const rDate = row.querySelector('.reminder-row-date')?.value || '';
       const rTime = row.querySelector('.reminder-row-time')?.value || '';
+      const existingId = row.dataset.reminderId || null;
 
       if (!rTitle || !rDate || !rTime) return;
 
       const dueAt = new Date(`${rDate}T${rTime}`).toISOString();
-      const pending = this._pendingReminders[idx];
 
-      if (pending && pending.existing && pending.id) {
-        // Update existing
-        this._reminderManager.update(pending.id, { title: rTitle, dueAt, memoId });
-        currentIds.add(pending.id);
+      if (existingId) {
+        this._reminderManager.update(existingId, { title: rTitle, dueAt, memoId });
+        currentIds.add(existingId);
       } else {
-        // Create new
         const r = this._reminderManager.create({ title: rTitle, dueAt, memoId });
         currentIds.add(r.id);
       }
@@ -1554,8 +1576,8 @@ class MemoEditorView {
       const dateVal = dueDate ? toLocalDateStr(dueDate) : '';
       const timeVal = dueDate ? dueDate.toTimeString().slice(0, 5) : '';
       return `
-        <div class="reminder-row" data-idx="${idx}">
-          <input type="text" class="reminder-row-title" placeholder="리마인더 제목" value="${this._escapeAttr(r.title || '')}" style="flex: 2;">
+        <div class="reminder-row" data-idx="${idx}" data-reminder-id="${r.id || ''}">
+          <input type="text" class="reminder-row-title" placeholder="리마인더 제목" value="${escapeAttr(r.title || '')}" style="flex: 2;">
           <input type="date" class="reminder-row-date" value="${dateVal}">
           <input type="time" class="reminder-row-time" value="${timeVal}">
           <button data-action="remove-reminder-row" data-idx="${idx}" style="color: var(--danger); font-size: 16px;">✕</button>
@@ -1578,9 +1600,6 @@ class MemoEditorView {
     });
   }
 
-  _escapeAttr(str) {
-    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
 }
 
 /* ================================================================
@@ -1621,9 +1640,9 @@ class ReminderListView {
         <div class="${classes.join(' ')}" data-id="${r.id}">
           <input type="checkbox" class="reminder-checkbox" data-action="toggle-done" data-id="${r.id}" ${r.done ? 'checked' : ''}>
           <div class="reminder-content">
-            <div class="reminder-title">${this._escapeHtml(r.title)}</div>
+            <div class="reminder-title">${escapeHtml(r.title)}</div>
             <div class="reminder-due">${this._formatDue(r.dueAt)}${isOverdue ? ' (만료)' : ''}</div>
-            ${memo ? `<span class="reminder-memo-link" data-action="open-memo" data-memo-id="${memo.id}">📝 ${this._escapeHtml(memo.title || '제목 없음')}</span>` : ''}
+            ${memo ? `<span class="reminder-memo-link" data-action="open-memo" data-memo-id="${memo.id}">📝 ${escapeHtml(memo.title || '제목 없음')}</span>` : ''}
           </div>
           <div class="reminder-actions">
             <button data-action="edit-reminder" data-id="${r.id}" title="편집">✏️</button>
@@ -1674,11 +1693,6 @@ class ReminderListView {
     return `${dateStr} ${timeStr}`;
   }
 
-  _escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
 }
 
 /* ================================================================
@@ -1752,7 +1766,8 @@ class App {
     this._memoEditorView = new MemoEditorView(
       document.getElementById('memo-modal'),
       this._memoManager,
-      this._reminderManager
+      this._reminderManager,
+      confirmFn
     );
 
     this._reminderListView = new ReminderListView(
@@ -1925,7 +1940,7 @@ class App {
       }
       memoSelect.value = r.memoId || '';
       deleteBtn.style.display = 'inline-block';
-      modal._editingId = reminderId;
+      this._reminderEditingId = reminderId;
     } else {
       titleEl.textContent = '새 리마인더';
       titleInput.value = '';
@@ -1935,15 +1950,15 @@ class App {
       timeInput.value = now.toTimeString().slice(0, 5);
       memoSelect.value = '';
       deleteBtn.style.display = 'none';
-      modal._editingId = null;
+      this._reminderEditingId = null;
     }
 
     modal.classList.add('visible');
     titleInput.focus();
 
-    // Bind save/close (one-time setup avoided by checking flag)
-    if (!modal._bound) {
-      modal._bound = true;
+    // Bind save/close (one-time setup)
+    if (!this._reminderBound) {
+      this._reminderBound = true;
 
       modal.addEventListener('click', (e) => {
         if (e.target.closest('[data-action="close-reminder-modal"]') || e.target === modal) {
@@ -1968,8 +1983,8 @@ class App {
         const dueAt = new Date(`${date}T${time}`).toISOString();
         const memoId = memoSelect.value || null;
 
-        if (modal._editingId) {
-          this._reminderManager.update(modal._editingId, { title, dueAt, memoId });
+        if (this._reminderEditingId) {
+          this._reminderManager.update(this._reminderEditingId, { title, dueAt, memoId });
         } else {
           this._reminderManager.create({ title, dueAt, memoId });
         }
@@ -1977,9 +1992,9 @@ class App {
       });
 
       document.getElementById('btn-delete-reminder').addEventListener('click', () => {
-        if (modal._editingId) {
+        if (this._reminderEditingId) {
           App.confirm('이 리마인더를 삭제하시겠습니까?', () => {
-            this._reminderManager.delete(modal._editingId);
+            this._reminderManager.delete(this._reminderEditingId);
             modal.classList.remove('visible');
           });
         }
@@ -2026,7 +2041,7 @@ class App {
           this._memoManager.reload();
           this._reminderManager.reload();
         } catch (err) {
-          alert('가져오기 실패: ' + err.message);
+          this._showBanner('가져오기 실패: ' + err.message);
         }
       };
       reader.readAsText(file);
