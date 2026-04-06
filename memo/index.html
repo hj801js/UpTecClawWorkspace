@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MemoKeep</title>
+<style>
+/* ========== CSS Variables / Theme ========== */
+:root[data-theme="light"] {
+  --bg-primary:     #ffffff;
+  --bg-secondary:   #f5f5f5;
+  --bg-card:        #ffffff;
+  --text-primary:   #1a1a1a;
+  --text-secondary: #666666;
+  --border:         #e0e0e0;
+  --shadow:         rgba(0, 0, 0, 0.08);
+  --accent:         #4a90d9;
+  --accent-hover:   #3a7bc8;
+  --danger:         #dc3545;
+  --danger-hover:   #c82333;
+  --success:        #198754;
+  --overlay:        rgba(0, 0, 0, 0.4);
+  --banner-bg:      #fff3cd;
+  --banner-text:    #856404;
+}
+
+:root[data-theme="dark"] {
+  --bg-primary:     #1a1a2e;
+  --bg-secondary:   #16213e;
+  --bg-card:        #1e2a45;
+  --text-primary:   #eaeaea;
+  --text-secondary: #a0a0a0;
+  --border:         #2a2a4a;
+  --shadow:         rgba(0, 0, 0, 0.3);
+  --accent:         #5fa8f5;
+  --accent-hover:   #4a95e0;
+  --danger:         #e05565;
+  --danger-hover:   #d04050;
+  --success:        #2ecc71;
+  --overlay:        rgba(0, 0, 0, 0.6);
+  --banner-bg:      #3d3520;
+  --banner-text:    #d4a017;
+}
+
+/* Memo color tags - light */
+.memo-yellow { --memo-color: #fff3cd; --memo-border: #ffc107; }
+.memo-blue   { --memo-color: #cfe2ff; --memo-border: #0d6efd; }
+.memo-green  { --memo-color: #d1e7dd; --memo-border: #198754; }
+.memo-pink   { --memo-color: #f8d7da; --memo-border: #dc3545; }
+.memo-purple { --memo-color: #e2d9f3; --memo-border: #6f42c1; }
+.memo-gray   { --memo-color: #e9ecef; --memo-border: #6c757d; }
+
+/* Memo color tags - dark */
+[data-theme="dark"] .memo-yellow { --memo-color: #3d3520; --memo-border: #d4a017; }
+[data-theme="dark"] .memo-blue   { --memo-color: #1a2a4a; --memo-border: #4a8af5; }
+[data-theme="dark"] .memo-green  { --memo-color: #1a3a2a; --memo-border: #2ecc71; }
+[data-theme="dark"] .memo-pink   { --memo-color: #3a1a20; --memo-border: #e05565; }
+[data-theme="dark"] .memo-purple { --memo-color: #2a1a3a; --memo-border: #9b6dff; }
+[data-theme="dark"] .memo-gray   { --memo-color: #2a2a3a; --memo-border: #8a8a9a; }
+
+/* ========== Reset & Base ========== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+input, textarea, select {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  outline: none;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+}
+
+/* ========== Header ========== */
+.header {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.header-search {
+  flex: 1;
+  min-width: 150px;
+  max-width: 400px;
+}
+
+.header-search input {
+  width: 100%;
+  padding: 6px 12px 6px 32px;
+  border-radius: 20px;
+  background: var(--bg-secondary);
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-wrapper::before {
+  content: '🔍';
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.header-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: background 0.15s;
+}
+
+.icon-btn:hover {
+  background: var(--bg-secondary);
+}
+
+/* ========== Notification Banner ========== */
+.notification-banner {
+  display: none;
+  background: var(--banner-bg);
+  color: var(--banner-text);
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-banner.visible {
+  display: flex;
+}
+
+.notification-banner .close-banner {
+  margin-left: auto;
+  cursor: pointer;
+  font-size: 18px;
+  opacity: 0.7;
+}
+
+.notification-banner .close-banner:hover {
+  opacity: 1;
+}
+
+/* ========== Mobile Tabs ========== */
+.mobile-tabs {
+  display: none;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-primary);
+}
+
+.mobile-tabs button {
+  flex: 1;
+  padding: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.mobile-tabs button.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ========== Main Layout ========== */
+.main-container {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 0;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: calc(100vh - 60px);
+}
+
+/* ========== Panels ========== */
+.panel {
+  padding: 20px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+
+.btn-danger:hover {
+  background: var(--danger-hover);
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+/* ========== Sort Controls ========== */
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.sort-controls select {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+/* ========== Memo Grid ========== */
+.memo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.memo-card {
+  background: var(--memo-color, var(--bg-card));
+  border-left: 4px solid var(--memo-border, var(--border));
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  box-shadow: 0 1px 4px var(--shadow);
+  transition: transform 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+
+.memo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.memo-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.memo-pin {
+  font-size: 14px;
+  margin-right: 4px;
+  cursor: pointer;
+  opacity: 0.25;
+  transition: opacity 0.15s;
+}
+
+.memo-pin.pinned {
+  opacity: 1;
+}
+
+.memo-card:hover .memo-pin {
+  opacity: 0.6;
+}
+
+.memo-card:hover .memo-pin.pinned,
+.memo-pin.pinned {
+  opacity: 1;
+}
+
+.memo-card-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.memo-card-delete {
+  opacity: 0;
+  font-size: 16px;
+  color: var(--text-secondary);
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.memo-card:hover .memo-card-delete {
+  opacity: 1;
+}
+
+.memo-card-delete:hover {
+  color: var(--danger);
+}
+
+.memo-card-content {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.memo-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.memo-card-reminder-badge {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ========== Reminder Panel ========== */
+.reminder-panel {
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border);
+}
+
+.reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  transition: background 0.15s;
+}
+
+.reminder-item:hover {
+  background: var(--border);
+}
+
+.reminder-item.done {
+  opacity: 0.6;
+}
+
+.reminder-item.done .reminder-title {
+  text-decoration: line-through;
+}
+
+.reminder-item.overdue .reminder-due {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.reminder-checkbox {
+  margin-top: 2px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.reminder-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.reminder-title {
+  font-size: 0.9rem;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.reminder-due {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.reminder-memo-link {
+  font-size: 0.75rem;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.reminder-memo-link:hover {
+  color: var(--accent-hover);
+}
+
+.reminder-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.reminder-actions button {
+  font-size: 14px;
+  opacity: 0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: opacity 0.15s;
+}
+
+.reminder-item:hover .reminder-actions button {
+  opacity: 0.7;
+}
+
+.reminder-actions button:hover {
+  opacity: 1 !important;
+}
+
+/* ========== Modal ========== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-overlay.visible {
+  display: flex;
+}
+
+.modal {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px var(--shadow);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  font-size: 20px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.modal-close:hover {
+  background: var(--bg-secondary);
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-body label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.modal-body input[type="text"],
+.modal-body textarea {
+  width: 100%;
+}
+
+.modal-body textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.color-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.color-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-dot:hover {
+  transform: scale(1.15);
+}
+
+.color-dot.selected {
+  border-color: var(--text-primary);
+  transform: scale(1.15);
+}
+
+.color-dot[data-color="yellow"] { background: #ffc107; }
+.color-dot[data-color="blue"]   { background: #0d6efd; }
+.color-dot[data-color="green"]  { background: #198754; }
+.color-dot[data-color="pink"]   { background: #dc3545; }
+.color-dot[data-color="purple"] { background: #6f42c1; }
+.color-dot[data-color="gray"]   { background: #6c757d; }
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* Reminder section in memo editor */
+.memo-reminder-section {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.memo-reminder-section .reminder-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.memo-reminder-section input[type="date"],
+.memo-reminder-section input[type="time"] {
+  flex: 1;
+}
+
+/* Reminder edit modal */
+.reminder-modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reminder-datetime-row {
+  display: flex;
+  gap: 8px;
+}
+
+.reminder-datetime-row > div {
+  flex: 1;
+}
+
+/* ========== Empty State ========== */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+.empty-state-text {
+  font-size: 0.95rem;
+}
+
+/* ========== Confirm Dialog ========== */
+.confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirm-overlay.visible {
+  display: flex;
+}
+
+.confirm-dialog {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px var(--shadow);
+}
+
+.confirm-dialog p {
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.confirm-dialog .confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 767px) {
+  .header {
+    padding: 10px 14px;
+  }
+
+  .header-search {
+    order: 10;
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .mobile-tabs {
+    display: flex;
+  }
+
+  .main-container {
+    grid-template-columns: 1fr;
+  }
+
+  .panel.memo-panel,
+  .panel.reminder-panel {
+    display: none;
+  }
+
+  .panel.memo-panel.active,
+  .panel.reminder-panel.active {
+    display: block;
+  }
+
+  .reminder-panel {
+    border-left: none;
+  }
+
+  .memo-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== Hidden file input ========== */
+#import-file-input {
+  display: none;
+}
+</style>
+</head>
+<body>
+
+<!-- Storage Warning Banner -->
+<div class="storage-warning" id="storage-warning" style="display:none; background:var(--danger); color:#fff; text-align:center; padding:8px; font-size:0.85rem;">
+  저장 공간이 부족합니다. 불필요한 메모를 삭제하거나 데이터를 내보내기 해주세요.
+</div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-logo">MemoKeep</div>
+  <div class="header-search">
+    <div class="search-wrapper">
+      <input type="text" id="search-input" placeholder="검색...">
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" id="btn-theme" title="테마 전환">☀️</button>
+    <button class="icon-btn" id="btn-import" title="가져오기">📥</button>
+    <button class="icon-btn" id="btn-export" title="내보내기">📤</button>
+    <button class="icon-btn" id="btn-clear-all" title="전체 삭제" style="color: var(--danger);">🗑️</button>
+  </div>
+</header>
+
+<!-- Notification Banner -->
+<div class="notification-banner" id="notification-banner">
+  <span id="banner-text"></span>
+  <span class="close-banner" id="close-banner">✕</span>
+</div>
+
+<!-- Mobile Tabs -->
+<div class="mobile-tabs" id="mobile-tabs">
+  <button class="active" data-tab="memos">메모</button>
+  <button data-tab="reminders">리마인더</button>
+</div>
+
+<!-- Main Content -->
+<main class="main-container">
+  <!-- Memo Panel -->
+  <section class="panel memo-panel active" id="memo-panel">
+    <div class="panel-header">
+      <span class="panel-title">메모</span>
+      <button class="btn-primary" id="btn-new-memo">+ 새 메모</button>
+    </div>
+    <div class="sort-controls" id="sort-controls">
+      <span>정렬:</span>
+      <select id="sort-by">
+        <option value="updatedAt">수정일</option>
+        <option value="createdAt">생성일</option>
+        <option value="title">제목</option>
+      </select>
+      <select id="sort-order">
+        <option value="desc">최신순</option>
+        <option value="asc">오래된순</option>
+      </select>
+    </div>
+    <div class="memo-grid" id="memo-grid">
+      <!-- Rendered by MemoListView -->
+    </div>
+  </section>
+
+  <!-- Reminder Panel -->
+  <section class="panel reminder-panel active" id="reminder-panel">
+    <div class="panel-header">
+      <span class="panel-title">리마인더</span>
+      <button class="btn-primary" id="btn-new-reminder">+ 새 리마인더</button>
+    </div>
+    <div class="reminder-list" id="reminder-list">
+      <!-- Rendered by ReminderListView -->
+    </div>
+  </section>
+</main>
+
+<!-- Memo Editor Modal -->
+<div class="modal-overlay" id="memo-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="memo-modal-title">새 메모</h2>
+      <button class="modal-close" data-action="close-memo-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <label for="memo-title-input">제목</label>
+        <input type="text" id="memo-title-input" placeholder="메모 제목">
+      </div>
+      <div>
+        <label for="memo-content-input">내용</label>
+        <textarea id="memo-content-input" placeholder="메모 내용을 입력하세요..."></textarea>
+      </div>
+      <div>
+        <label>색상</label>
+        <div class="color-picker" id="color-picker">
+          <div class="color-dot selected" data-color="yellow"></div>
+          <div class="color-dot" data-color="blue"></div>
+          <div class="color-dot" data-color="green"></div>
+          <div class="color-dot" data-color="pink"></div>
+          <div class="color-dot" data-color="purple"></div>
+          <div class="color-dot" data-color="gray"></div>
+        </div>
+      </div>
+      <div class="memo-reminder-section" id="memo-reminder-section">
+        <label>리마인더</label>
+        <div id="memo-reminder-list"></div>
+        <button class="btn-secondary" id="btn-add-memo-reminder" style="margin-top: 8px; font-size: 0.85rem;">+ 리마인더 추가</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger" id="btn-delete-memo" style="margin-right: auto; display: none;">삭제</button>
+      <button class="btn-secondary" data-action="close-memo-modal">취소</button>
+      <button class="btn-primary" id="btn-save-memo">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reminder Editor Modal -->
+<div class="modal-overlay" id="reminder-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="reminder-modal-title">새 리마인더</h2>
+      <button class="modal-close" data-action="close-reminder-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="reminder-modal-fields">
+        <div>
+          <label for="reminder-title-input">제목</label>
+          <input type="text" id="reminder-title-input" placeholder="리마인더 제목">
+        </div>
+        <div class="reminder-datetime-row">
+          <div>
+            <label for="reminder-date-input">날짜</label>
+            <input type="date" id="reminder-date-input">
+          </div>
+          <div>
+            <label for="reminder-time-input">시간</label>
+            <input type="time" id="reminder-time-input">
+          </div>
+        </div>
+        <div>
+          <label for="reminder-memo-select">연결된 메모 (선택)</label>
+          <select id="reminder-memo-select" style="width: 100%;">
+            <option value="">없음</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-danger" id="btn-delete-reminder" style="margin-right: auto; display: none;">삭제</button>
+      <button class="btn-secondary" data-action="close-reminder-modal">취소</button>
+      <button class="btn-primary" id="btn-save-reminder">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-dialog">
+    <p id="confirm-text"></p>
+    <div class="confirm-actions">
+      <button class="btn-secondary" id="confirm-cancel">취소</button>
+      <button class="btn-danger" id="confirm-ok">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="import-file-input" accept=".json">
+
+<script>
+/* ================================================================
+   Utility — 공유 헬퍼
+   ================================================================ */
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/* ================================================================
+   StorageAdapter — localStorage 추상화
+   ================================================================ */
+class StorageAdapter {
+  constructor(prefix = 'memoapp_') {
+    this._prefix = prefix;
+  }
+
+  load(key, defaultValue = null) {
+    try {
+      const raw = localStorage.getItem(this._prefix + key);
+      return raw !== null ? JSON.parse(raw) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  }
+
+  save(key, data) {
+    try {
+      localStorage.setItem(this._prefix + key, JSON.stringify(data));
+    } catch (e) {
+      const warning = document.getElementById('storage-warning');
+      if (warning) warning.style.display = 'block';
+      console.error('Storage save failed:', e);
+    }
+  }
+
+  exportAll() {
+    return JSON.stringify({
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      memos: this.load('memos', []),
+      reminders: this.load('reminders', [])
+    }, null, 2);
+  }
+
+  clearAll() {
+    this.save('memos', []);
+    this.save('reminders', []);
+  }
+
+  importAll(jsonString) {
+    const data = JSON.parse(jsonString);
+    if (!data.version || !Array.isArray(data.memos) || !Array.isArray(data.reminders)) {
+      throw new Error('올바르지 않은 백업 형식입니다.');
+    }
+    this.save('memos', data.memos);
+    this.save('reminders', data.reminders);
+    return data;
+  }
+}
+
+/* ================================================================
+   MemoManager — 메모 CRUD + 검색 + 핀 + Observer
+   ================================================================ */
+class MemoManager {
+  constructor(storage, onError = null) {
+    this._storage = storage;
+    this._onError = onError;
+    this._memos = storage.load('memos', []);
+    this._listeners = new Set();
+  }
+
+  _generateId() {
+    return 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5);
+  }
+
+  getAll(sortBy = 'updatedAt', sortOrder = 'desc') {
+    const sorted = [...this._memos].sort((a, b) => {
+      // Pinned first
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const valA = a[sortBy] || '';
+      const valB = b[sortBy] || '';
+      if (sortBy === 'title') {
+        const cmp = valA.localeCompare(valB);
+        return sortOrder === 'asc' ? cmp : -cmp;
+      }
+      const cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+    return sorted;
+  }
+
+  getById(id) {
+    return this._memos.find(m => m.id === id) || null;
+  }
+
+  create({ title = '', content = '', color = 'yellow' }) {
+    const now = new Date().toISOString();
+    const memo = {
+      id: this._generateId(),
+      title, content, color,
+      pinned: false,
+      createdAt: now,
+      updatedAt: now
+    };
+    this._memos.push(memo);
+    this._persist();
+    return memo;
+  }
+
+  update(id, changes) {
+    const memo = this.getById(id);
+    if (!memo) return null;
+    if (changes.title !== undefined) memo.title = changes.title;
+    if (changes.content !== undefined) memo.content = changes.content;
+    if (changes.color !== undefined) memo.color = changes.color;
+    memo.updatedAt = new Date().toISOString();
+    this._persist();
+    return memo;
+  }
+
+  delete(id) {
+    this._memos = this._memos.filter(m => m.id !== id);
+    this._persist();
+  }
+
+  togglePin(id) {
+    const memo = this.getById(id);
+    if (!memo) return null;
+    memo.pinned = !memo.pinned;
+    memo.updatedAt = new Date().toISOString();
+    this._persist();
+    return memo;
+  }
+
+  search(query, sortBy, sortOrder) {
+    if (!query || !query.trim()) return this.getAll(sortBy, sortOrder);
+    const q = query.toLowerCase().trim();
+    return this.getAll(sortBy, sortOrder).filter(m =>
+      (m.title || '').toLowerCase().includes(q) ||
+      (m.content || '').toLowerCase().includes(q)
+    );
+  }
+
+  onChange(callback) {
+    this._listeners.add(callback);
+  }
+
+  _persist() {
+    try {
+      this._storage.save('memos', this._memos);
+    } catch (e) {
+      if (this._onError) this._onError(e.message);
+      return;
+    }
+    this._listeners.forEach(cb => cb());
+  }
+
+  /** Reload from storage (used after import) */
+  reload() {
+    this._memos = this._storage.load('memos', []);
+    this._listeners.forEach(cb => cb());
+  }
+}
+
+/* ================================================================
+   NotificationService — Web Notifications API wrapper
+   ================================================================ */
+class NotificationService {
+  static isSupported() {
+    return 'Notification' in window;
+  }
+
+  static getPermission() {
+    return NotificationService.isSupported() ? Notification.permission : 'denied';
+  }
+
+  static async requestPermission() {
+    if (!NotificationService.isSupported()) return 'denied';
+    if (Notification.permission === 'granted') return 'granted';
+    return await Notification.requestPermission();
+  }
+
+  static send(title, body = '') {
+    if (NotificationService.getPermission() === 'granted') {
+      try {
+        new Notification(title, { body, icon: '📝' });
+      } catch {
+        // Fallback silently
+      }
+    }
+  }
+}
+
+/* ================================================================
+   ReminderManager — 리마인더 CRUD + 폴링 + Observer
+   ================================================================ */
+class ReminderManager {
+  constructor(storage, notificationService, bannerCallback, onError = null) {
+    this._storage = storage;
+    this._notificationService = notificationService;
+    this._bannerCallback = bannerCallback;
+    this._onError = onError;
+    this._reminders = storage.load('reminders', []);
+    this._listeners = new Set();
+    this._pollTimer = null;
+  }
+
+  _generateId() {
+    return 'r_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5);
+  }
+
+  getAll() {
+    return [...this._reminders].sort((a, b) => {
+      // Undone first
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      // Then by dueAt ascending
+      return (a.dueAt || '') < (b.dueAt || '') ? -1 : 1;
+    });
+  }
+
+  getById(id) {
+    return this._reminders.find(r => r.id === id) || null;
+  }
+
+  getByMemoId(memoId) {
+    return this._reminders.filter(r => r.memoId === memoId);
+  }
+
+  create({ title, dueAt, memoId = null }) {
+    const reminder = {
+      id: this._generateId(),
+      memoId,
+      title,
+      dueAt,
+      done: false,
+      notified: false,
+      createdAt: new Date().toISOString()
+    };
+    this._reminders.push(reminder);
+    this._persist();
+    return reminder;
+  }
+
+  update(id, changes) {
+    const reminder = this.getById(id);
+    if (!reminder) return null;
+    if (changes.title !== undefined) reminder.title = changes.title;
+    if (changes.dueAt !== undefined) {
+      reminder.dueAt = changes.dueAt;
+      reminder.notified = false; // Reset notification on reschedule
+    }
+    if (changes.memoId !== undefined) reminder.memoId = changes.memoId;
+    this._persist();
+    return reminder;
+  }
+
+  delete(id) {
+    this._reminders = this._reminders.filter(r => r.id !== id);
+    this._persist();
+  }
+
+  toggleDone(id) {
+    const reminder = this.getById(id);
+    if (!reminder) return;
+    reminder.done = !reminder.done;
+    this._persist();
+  }
+
+  deleteByMemoId(memoId) {
+    this._reminders = this._reminders.filter(r => r.memoId !== memoId);
+    this._persist();
+  }
+
+  startPolling() {
+    this._checkDue();
+    this._pollTimer = setInterval(() => this._checkDue(), 60000);
+  }
+
+  stopPolling() {
+    if (this._pollTimer) {
+      clearInterval(this._pollTimer);
+      this._pollTimer = null;
+    }
+  }
+
+  _checkDue() {
+    const now = new Date();
+    let changed = false;
+    const dueItems = [];
+
+    this._reminders.forEach(r => {
+      if (!r.done && !r.notified && r.dueAt && new Date(r.dueAt) <= now) {
+        NotificationService.send('MemoKeep 리마인더', r.title);
+        r.notified = true;
+        changed = true;
+        dueItems.push(r);
+      }
+    });
+
+    if (changed) {
+      this._persist();
+    }
+
+    // Show in-app banner for due items when notification permission denied
+    if (dueItems.length > 0 && NotificationService.getPermission() !== 'granted') {
+      if (this._bannerCallback) {
+        const text = dueItems.map(r => r.title).join(', ');
+        this._bannerCallback('만기된 리마인더: ' + text);
+      }
+    }
+  }
+
+  onChange(callback) {
+    this._listeners.add(callback);
+  }
+
+  _persist() {
+    try {
+      this._storage.save('reminders', this._reminders);
+    } catch (e) {
+      if (this._bannerCallback) this._bannerCallback(e.message);
+      return;
+    }
+    this._listeners.forEach(cb => cb());
+  }
+
+  reload() {
+    this._reminders = this._storage.load('reminders', []);
+    this._listeners.forEach(cb => cb());
+  }
+}
+
+/* ================================================================
+   ThemeManager — CSS 변수 기반 다크/라이트 전환
+   ================================================================ */
+class ThemeManager {
+  constructor(storage) {
+    this._storage = storage;
+    const settings = storage.load('settings', { theme: 'light' });
+    this._theme = settings.theme || 'light';
+  }
+
+  toggle() {
+    this._theme = this._theme === 'light' ? 'dark' : 'light';
+    this.apply();
+    this._save();
+  }
+
+  apply() {
+    document.documentElement.dataset.theme = this._theme;
+  }
+
+  getTheme() {
+    return this._theme;
+  }
+
+  getIcon() {
+    return this._theme === 'light' ? '☀️' : '🌙';
+  }
+
+  _save() {
+    const settings = this._storage.load('settings', {});
+    settings.theme = this._theme;
+    this._storage.save('settings', settings);
+  }
+}
+
+/* ================================================================
+   MemoListView — 메모 카드 그리드 렌더링
+   ================================================================ */
+class MemoListView {
+  constructor(containerEl, memoManager, reminderManager, onEdit) {
+    this._container = containerEl;
+    this._memoManager = memoManager;
+    this._reminderManager = reminderManager;
+    this._onEdit = onEdit;
+    this._searchQuery = '';
+    this._bindEvents();
+  }
+
+  setSearchQuery(query) {
+    this._searchQuery = query;
+  }
+
+  render(sortBy, sortOrder) {
+    const memos = this._searchQuery
+      ? this._memoManager.search(this._searchQuery, sortBy, sortOrder)
+      : this._memoManager.getAll(sortBy, sortOrder);
+
+    if (memos.length === 0) {
+      this._container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <div class="empty-state-text">${this._searchQuery ? '검색 결과가 없습니다' : '메모가 없습니다. 새 메모를 작성해보세요!'}</div>
+        </div>`;
+      return;
+    }
+
+    this._container.innerHTML = memos.map(memo => {
+      const reminderCount = this._reminderManager.getByMemoId(memo.id).filter(r => !r.done).length;
+      return `
+        <div class="memo-card memo-${memo.color}" data-id="${memo.id}">
+          <div class="memo-card-header">
+            <span class="memo-pin ${memo.pinned ? 'pinned' : ''}" data-action="toggle-pin" data-id="${memo.id}" title="핀 고정">📌</span>
+            <span class="memo-card-title">${this._escapeHtml(memo.title || '제목 없음')}</span>
+            <button class="memo-card-delete" data-action="delete-memo" data-id="${memo.id}" title="삭제">✕</button>
+          </div>
+          <div class="memo-card-content">${this._escapeHtml(memo.content || '')}</div>
+          <div class="memo-card-footer">
+            ${reminderCount > 0 ? `<span class="memo-card-reminder-badge">🔔 ${reminderCount}건</span>` : ''}
+            <span>${this._relativeTime(memo.updatedAt)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  _bindEvents() {
+    this._container.addEventListener('click', (e) => {
+      const pinBtn = e.target.closest('[data-action="toggle-pin"]');
+      if (pinBtn) {
+        e.stopPropagation();
+        this._memoManager.togglePin(pinBtn.dataset.id);
+        return;
+      }
+      const deleteBtn = e.target.closest('[data-action="delete-memo"]');
+      if (deleteBtn) {
+        e.stopPropagation();
+        const id = deleteBtn.dataset.id;
+        this._onDeleteRequest(id);
+        return;
+      }
+      const card = e.target.closest('.memo-card');
+      if (card) {
+        this._onEdit(card.dataset.id);
+      }
+    });
+  }
+
+  _onDeleteRequest(id) {
+    const memo = this._memoManager.getById(id);
+    if (!memo) return;
+    App.confirm(`"${memo.title || '제목 없음'}" 메모를 삭제하시겠습니까?`, () => {
+      this._memoManager.delete(id);
+      this._reminderManager.deleteByMemoId(id);
+    });
+  }
+
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  _relativeTime(isoStr) {
+    if (!isoStr) return '';
+    const diff = Date.now() - new Date(isoStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return '방금 전';
+    if (mins < 60) return `${mins}분 전`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}시간 전`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}일 전`;
+    return new Date(isoStr).toLocaleDateString('ko-KR');
+  }
+}
+
+/* ================================================================
+   MemoEditorView — 생성/수정 모달
+   ================================================================ */
+class MemoEditorView {
+  constructor(modalEl, memoManager, reminderManager) {
+    this._modal = modalEl;
+    this._memoManager = memoManager;
+    this._reminderManager = reminderManager;
+    this._editingId = null;
+    this._selectedColor = 'yellow';
+    this._pendingReminders = []; // Reminders to add on save
+    this._bindEvents();
+  }
+
+  open(memoId = null) {
+    this._editingId = memoId;
+    const titleEl = document.getElementById('memo-modal-title');
+    const titleInput = document.getElementById('memo-title-input');
+    const contentInput = document.getElementById('memo-content-input');
+    const deleteBtn = document.getElementById('btn-delete-memo');
+
+    if (memoId) {
+      const memo = this._memoManager.getById(memoId);
+      if (!memo) return;
+      titleEl.textContent = '메모 편집';
+      titleInput.value = memo.title;
+      contentInput.value = memo.content;
+      this._selectedColor = memo.color;
+      deleteBtn.style.display = 'inline-block';
+      // Load existing reminders for this memo
+      this._pendingReminders = this._reminderManager.getByMemoId(memoId).map(r => ({
+        id: r.id,
+        title: r.title,
+        dueAt: r.dueAt,
+        existing: true
+      }));
+    } else {
+      titleEl.textContent = '새 메모';
+      titleInput.value = '';
+      contentInput.value = '';
+      this._selectedColor = 'yellow';
+      deleteBtn.style.display = 'none';
+      this._pendingReminders = [];
+    }
+
+    this._updateColorPicker();
+    this._renderMemoReminders();
+    this._modal.classList.add('visible');
+    titleInput.focus();
+  }
+
+  close() {
+    this._modal.classList.remove('visible');
+    this._editingId = null;
+    this._pendingReminders = [];
+  }
+
+  _bindEvents() {
+    // Close buttons
+    this._modal.addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="close-memo-modal"]') || e.target === this._modal) {
+        this.close();
+      }
+    });
+
+    // Color picker
+    document.getElementById('color-picker').addEventListener('click', (e) => {
+      const dot = e.target.closest('.color-dot');
+      if (dot) {
+        this._selectedColor = dot.dataset.color;
+        this._updateColorPicker();
+      }
+    });
+
+    // Save
+    document.getElementById('btn-save-memo').addEventListener('click', () => this._save());
+
+    // Delete
+    document.getElementById('btn-delete-memo').addEventListener('click', () => {
+      if (this._editingId) {
+        App.confirm('이 메모를 삭제하시겠습니까?', () => {
+          this._memoManager.delete(this._editingId);
+          this._reminderManager.deleteByMemoId(this._editingId);
+          this.close();
+        });
+      }
+    });
+
+    // Add reminder in memo editor
+    document.getElementById('btn-add-memo-reminder').addEventListener('click', () => {
+      this._pendingReminders.push({ id: null, title: '', dueAt: '', existing: false });
+      this._renderMemoReminders();
+    });
+
+    // Keyboard shortcut
+    this._modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.close();
+    });
+  }
+
+  _save() {
+    const title = document.getElementById('memo-title-input').value.trim();
+    const content = document.getElementById('memo-content-input').value.trim();
+
+    if (!title && !content) return; // Don't save empty memo
+
+    let memo;
+    if (this._editingId) {
+      memo = this._memoManager.update(this._editingId, { title, content, color: this._selectedColor });
+    } else {
+      memo = this._memoManager.create({ title, content, color: this._selectedColor });
+    }
+
+    if (memo) {
+      this._saveReminders(memo.id);
+    }
+    this.close();
+  }
+
+  _saveReminders(memoId) {
+    // Collect current reminder data from DOM
+    const rows = document.querySelectorAll('#memo-reminder-list .reminder-row');
+    const currentIds = new Set();
+
+    rows.forEach((row, idx) => {
+      const rTitle = row.querySelector('.reminder-row-title')?.value?.trim() || '';
+      const rDate = row.querySelector('.reminder-row-date')?.value || '';
+      const rTime = row.querySelector('.reminder-row-time')?.value || '';
+
+      if (!rTitle || !rDate || !rTime) return;
+
+      const dueAt = new Date(`${rDate}T${rTime}`).toISOString();
+      const pending = this._pendingReminders[idx];
+
+      if (pending && pending.existing && pending.id) {
+        // Update existing
+        this._reminderManager.update(pending.id, { title: rTitle, dueAt, memoId });
+        currentIds.add(pending.id);
+      } else {
+        // Create new
+        const r = this._reminderManager.create({ title: rTitle, dueAt, memoId });
+        currentIds.add(r.id);
+      }
+    });
+
+    // Delete removed reminders
+    const originalReminders = this._reminderManager.getByMemoId(memoId);
+    originalReminders.forEach(r => {
+      if (!currentIds.has(r.id)) {
+        this._reminderManager.delete(r.id);
+      }
+    });
+  }
+
+  _renderMemoReminders() {
+    const container = document.getElementById('memo-reminder-list');
+    container.innerHTML = this._pendingReminders.map((r, idx) => {
+      const dueDate = r.dueAt ? new Date(r.dueAt) : null;
+      const dateVal = dueDate ? this._toLocalDateStr(dueDate) : '';
+      const timeVal = dueDate ? dueDate.toTimeString().slice(0, 5) : '';
+      return `
+        <div class="reminder-row" data-idx="${idx}">
+          <input type="text" class="reminder-row-title" placeholder="리마인더 제목" value="${this._escapeAttr(r.title || '')}" style="flex: 2;">
+          <input type="date" class="reminder-row-date" value="${dateVal}">
+          <input type="time" class="reminder-row-time" value="${timeVal}">
+          <button data-action="remove-reminder-row" data-idx="${idx}" style="color: var(--danger); font-size: 16px;">✕</button>
+        </div>`;
+    }).join('');
+
+    // Bind remove buttons
+    container.querySelectorAll('[data-action="remove-reminder-row"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx);
+        this._pendingReminders.splice(idx, 1);
+        this._renderMemoReminders();
+      });
+    });
+  }
+
+  _updateColorPicker() {
+    document.querySelectorAll('#color-picker .color-dot').forEach(dot => {
+      dot.classList.toggle('selected', dot.dataset.color === this._selectedColor);
+    });
+  }
+
+  _toLocalDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  _escapeAttr(str) {
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+}
+
+/* ================================================================
+   ReminderListView — 리마인더 목록 렌더링
+   ================================================================ */
+class ReminderListView {
+  constructor(containerEl, reminderManager, memoManager, onEditMemo) {
+    this._container = containerEl;
+    this._reminderManager = reminderManager;
+    this._memoManager = memoManager;
+    this._onEditMemo = onEditMemo;
+    this._bindEvents();
+  }
+
+  render() {
+    const reminders = this._reminderManager.getAll();
+
+    if (reminders.length === 0) {
+      this._container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🔔</div>
+          <div class="empty-state-text">리마인더가 없습니다</div>
+        </div>`;
+      return;
+    }
+
+    const now = new Date();
+    this._container.innerHTML = reminders.map(r => {
+      const isOverdue = !r.done && r.dueAt && new Date(r.dueAt) < now;
+      const memo = r.memoId ? this._memoManager.getById(r.memoId) : null;
+      const classes = ['reminder-item'];
+      if (r.done) classes.push('done');
+      if (isOverdue) classes.push('overdue');
+
+      return `
+        <div class="${classes.join(' ')}" data-id="${r.id}">
+          <input type="checkbox" class="reminder-checkbox" data-action="toggle-done" data-id="${r.id}" ${r.done ? 'checked' : ''}>
+          <div class="reminder-content">
+            <div class="reminder-title">${this._escapeHtml(r.title)}</div>
+            <div class="reminder-due">${this._formatDue(r.dueAt)}${isOverdue ? ' (만료)' : ''}</div>
+            ${memo ? `<span class="reminder-memo-link" data-action="open-memo" data-memo-id="${memo.id}">📝 ${this._escapeHtml(memo.title || '제목 없음')}</span>` : ''}
+          </div>
+          <div class="reminder-actions">
+            <button data-action="edit-reminder" data-id="${r.id}" title="편집">✏️</button>
+            <button data-action="delete-reminder" data-id="${r.id}" title="삭제">🗑️</button>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  _bindEvents() {
+    this._container.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+
+      const action = target.dataset.action;
+      const id = target.dataset.id;
+
+      switch (action) {
+        case 'toggle-done':
+          // Handled by 'change' event below to avoid double-toggle
+          return;
+        case 'edit-reminder':
+          App.instance.openReminderEditor(id);
+          break;
+        case 'delete-reminder':
+          App.confirm('이 리마인더를 삭제하시겠습니까?', () => {
+            this._reminderManager.delete(id);
+          });
+          break;
+        case 'open-memo':
+          this._onEditMemo(target.dataset.memoId);
+          break;
+      }
+    });
+
+    this._container.addEventListener('change', (e) => {
+      if (e.target.dataset.action === 'toggle-done') {
+        this._reminderManager.toggleDone(e.target.dataset.id);
+      }
+    });
+  }
+
+  _formatDue(isoStr) {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    const dateStr = d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' });
+    const timeStr = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${dateStr} ${timeStr}`;
+  }
+
+  _escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+}
+
+/* ================================================================
+   SearchBar — 검색 (300ms debounce)
+   ================================================================ */
+class SearchBar {
+  constructor(inputEl, memoListView, renderCallback) {
+    this._input = inputEl;
+    this._memoListView = memoListView;
+    this._renderCallback = renderCallback;
+    this._timer = null;
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    this._input.addEventListener('input', () => {
+      clearTimeout(this._timer);
+      this._timer = setTimeout(() => {
+        this._memoListView.setSearchQuery(this._input.value);
+        if (this._renderCallback) {
+          this._renderCallback();
+        } else {
+          this._memoListView.render();
+        }
+      }, 300);
+    });
+  }
+}
+
+/* ================================================================
+   App — 메인 컨트롤러
+   ================================================================ */
+class App {
+  static instance = null;
+
+  constructor() {
+    App.instance = this;
+    this.init();
+  }
+
+  init() {
+    // 1. StorageAdapter
+    this._storage = new StorageAdapter();
+
+    // 2. Notification permission
+    NotificationService.requestPermission();
+
+    // 3. MemoManager
+    this._memoManager = new MemoManager(this._storage, (msg) => this._showBanner(msg));
+
+    // 4. ReminderManager
+    this._reminderManager = new ReminderManager(this._storage, NotificationService, (text) => {
+      this._showBanner(text);
+    });
+
+    // 5. ThemeManager
+    this._themeManager = new ThemeManager(this._storage);
+    this._themeManager.apply();
+    this._updateThemeButton();
+
+    // 6. Views
+    this._memoListView = new MemoListView(
+      document.getElementById('memo-grid'),
+      this._memoManager,
+      this._reminderManager,
+      (id) => this._memoEditorView.open(id)
+    );
+
+    this._memoEditorView = new MemoEditorView(
+      document.getElementById('memo-modal'),
+      this._memoManager,
+      this._reminderManager
+    );
+
+    this._reminderListView = new ReminderListView(
+      document.getElementById('reminder-list'),
+      this._reminderManager,
+      this._memoManager,
+      (memoId) => this._memoEditorView.open(memoId)
+    );
+
+    this._searchBar = new SearchBar(
+      document.getElementById('search-input'),
+      this._memoListView,
+      () => this._renderMemos()
+    );
+
+    // 7. Observer bindings
+    this._memoManager.onChange(() => {
+      this._renderMemos();
+      this._reminderListView.render();
+    });
+
+    this._reminderManager.onChange(() => {
+      this._reminderListView.render();
+      this._renderMemos();
+    });
+
+    // 8. Sort controls
+    this._loadSortSettings();
+    document.getElementById('sort-by').addEventListener('change', () => this._renderMemos());
+    document.getElementById('sort-order').addEventListener('change', () => this._renderMemos());
+
+    // 9. Start polling
+    this._reminderManager.startPolling();
+
+    // 9. Button bindings
+    this._bindButtons();
+
+    // 10. visibilitychange
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this._reminderManager._checkDue();
+      }
+    });
+
+    // 11. Mobile tabs
+    this._bindMobileTabs();
+
+    // 12. Initial render
+    this._renderMemos();
+    this._reminderListView.render();
+  }
+
+  _renderMemos() {
+    const sortBy = document.getElementById('sort-by').value;
+    const sortOrder = document.getElementById('sort-order').value;
+    this._memoListView.render(sortBy, sortOrder);
+    this._saveSortSettings(sortBy, sortOrder);
+  }
+
+  _loadSortSettings() {
+    const settings = this._storage.load('settings', { theme: 'light', sortBy: 'updatedAt', sortOrder: 'desc' });
+    document.getElementById('sort-by').value = settings.sortBy || 'updatedAt';
+    document.getElementById('sort-order').value = settings.sortOrder || 'desc';
+  }
+
+  _saveSortSettings(sortBy, sortOrder) {
+    const settings = this._storage.load('settings', {});
+    settings.sortBy = sortBy;
+    settings.sortOrder = sortOrder;
+    this._storage.save('settings', settings);
+  }
+
+  _bindButtons() {
+    // New memo
+    document.getElementById('btn-new-memo').addEventListener('click', () => {
+      this._memoEditorView.open(null);
+    });
+
+    // New reminder (standalone)
+    document.getElementById('btn-new-reminder').addEventListener('click', () => {
+      this.openReminderEditor(null);
+    });
+
+    // Theme toggle
+    document.getElementById('btn-theme').addEventListener('click', () => {
+      this._themeManager.toggle();
+      this._updateThemeButton();
+    });
+
+    // Export
+    document.getElementById('btn-export').addEventListener('click', () => {
+      this._exportData();
+    });
+
+    // Import
+    document.getElementById('btn-import').addEventListener('click', () => {
+      document.getElementById('import-file-input').click();
+    });
+
+    document.getElementById('import-file-input').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      this._importData(file);
+      e.target.value = '';
+    });
+
+    // Clear all data (U5)
+    document.getElementById('btn-clear-all').addEventListener('click', () => {
+      this._clearAllData();
+    });
+
+    // Banner close
+    document.getElementById('close-banner').addEventListener('click', () => {
+      document.getElementById('notification-banner').classList.remove('visible');
+    });
+  }
+
+  _bindMobileTabs() {
+    document.getElementById('mobile-tabs').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-tab]');
+      if (!btn) return;
+
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('#mobile-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const memoPanel = document.getElementById('memo-panel');
+      const reminderPanel = document.getElementById('reminder-panel');
+
+      if (tab === 'memos') {
+        memoPanel.classList.add('active');
+        reminderPanel.classList.remove('active');
+      } else {
+        memoPanel.classList.remove('active');
+        reminderPanel.classList.add('active');
+      }
+    });
+  }
+
+  openReminderEditor(reminderId) {
+    const modal = document.getElementById('reminder-modal');
+    const titleEl = document.getElementById('reminder-modal-title');
+    const titleInput = document.getElementById('reminder-title-input');
+    const dateInput = document.getElementById('reminder-date-input');
+    const timeInput = document.getElementById('reminder-time-input');
+    const memoSelect = document.getElementById('reminder-memo-select');
+    const deleteBtn = document.getElementById('btn-delete-reminder');
+
+    // Populate memo select
+    const memos = this._memoManager.getAll();
+    memoSelect.innerHTML = '<option value="">없음</option>';
+    memos.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.title || '제목 없음';
+      memoSelect.appendChild(opt);
+    });
+
+    if (reminderId) {
+      const r = this._reminderManager.getById(reminderId);
+      if (!r) return;
+      titleEl.textContent = '리마인더 편집';
+      titleInput.value = r.title;
+      if (r.dueAt) {
+        const d = new Date(r.dueAt);
+        dateInput.value = this._toLocalDateStr(d);
+        timeInput.value = d.toTimeString().slice(0, 5);
+      }
+      memoSelect.value = r.memoId || '';
+      deleteBtn.style.display = 'inline-block';
+      modal._editingId = reminderId;
+    } else {
+      titleEl.textContent = '새 리마인더';
+      titleInput.value = '';
+      const now = new Date();
+      now.setHours(now.getHours() + 1, 0, 0, 0);
+      dateInput.value = this._toLocalDateStr(now);
+      timeInput.value = now.toTimeString().slice(0, 5);
+      memoSelect.value = '';
+      deleteBtn.style.display = 'none';
+      modal._editingId = null;
+    }
+
+    modal.classList.add('visible');
+    titleInput.focus();
+
+    // Bind save/close (one-time setup avoided by checking flag)
+    if (!modal._bound) {
+      modal._bound = true;
+
+      modal.addEventListener('click', (e) => {
+        if (e.target.closest('[data-action="close-reminder-modal"]') || e.target === modal) {
+          modal.classList.remove('visible');
+        }
+      });
+
+      modal.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') modal.classList.remove('visible');
+      });
+
+      document.getElementById('btn-save-reminder').addEventListener('click', () => {
+        const title = titleInput.value.trim();
+        const date = dateInput.value;
+        const time = timeInput.value;
+        if (!title || !date || !time) return;
+
+        const dueAt = new Date(`${date}T${time}`).toISOString();
+        const memoId = memoSelect.value || null;
+
+        if (modal._editingId) {
+          this._reminderManager.update(modal._editingId, { title, dueAt, memoId });
+        } else {
+          this._reminderManager.create({ title, dueAt, memoId });
+        }
+        modal.classList.remove('visible');
+      });
+
+      document.getElementById('btn-delete-reminder').addEventListener('click', () => {
+        if (modal._editingId) {
+          App.confirm('이 리마인더를 삭제하시겠습니까?', () => {
+            this._reminderManager.delete(modal._editingId);
+            modal.classList.remove('visible');
+          });
+        }
+      });
+    }
+  }
+
+  _toLocalDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  _updateThemeButton() {
+    document.getElementById('btn-theme').textContent = this._themeManager.getIcon();
+  }
+
+  _showBanner(text) {
+    const banner = document.getElementById('notification-banner');
+    document.getElementById('banner-text').textContent = text;
+    banner.classList.add('visible');
+  }
+
+  _clearAllData() {
+    App.confirm('모든 메모와 리마인더를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?', () => {
+      this._storage.clearAll();
+      this._memoManager.reload();
+      this._reminderManager.reload();
+    });
+  }
+
+  _exportData() {
+    const json = this._storage.exportAll();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `memokeep_backup_${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  _importData(file) {
+    App.confirm('기존 데이터를 백업 파일로 교체합니다. 계속하시겠습니까?', () => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          this._storage.importAll(e.target.result);
+          this._memoManager.reload();
+          this._reminderManager.reload();
+        } catch (err) {
+          alert('가져오기 실패: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  /* ---- Confirm dialog utility ---- */
+  static _confirmCallback = null;
+
+  static confirm(message, onConfirm) {
+    const overlay = document.getElementById('confirm-overlay');
+    document.getElementById('confirm-text').textContent = message;
+    overlay.classList.add('visible');
+    App._confirmCallback = onConfirm;
+  }
+
+  static _initConfirmDialog() {
+    const overlay = document.getElementById('confirm-overlay');
+    document.getElementById('confirm-cancel').addEventListener('click', () => {
+      overlay.classList.remove('visible');
+      App._confirmCallback = null;
+    });
+    document.getElementById('confirm-ok').addEventListener('click', () => {
+      overlay.classList.remove('visible');
+      if (App._confirmCallback) {
+        App._confirmCallback();
+        App._confirmCallback = null;
+      }
+    });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.classList.remove('visible');
+        App._confirmCallback = null;
+      }
+    });
+  }
+}
+
+// ===== Bootstrap =====
+App._initConfirmDialog();
+new App();
+</script>
+</body>
+</html>
