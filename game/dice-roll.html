@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>주사위 게임</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      text-align: center;
+      padding: 2rem;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.4rem;
+      color: #e2b96f;
+    }
+
+    .subtitle {
+      color: #aaa;
+      font-size: 0.9rem;
+      margin-bottom: 2rem;
+    }
+
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 2rem;
+    }
+
+    label {
+      font-size: 1rem;
+      color: #ccc;
+    }
+
+    input[type="number"] {
+      width: 100px;
+      padding: 0.6rem;
+      font-size: 1.4rem;
+      text-align: center;
+      border: 2px solid #444;
+      border-radius: 8px;
+      background: #16213e;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="number"]:focus {
+      border-color: #e2b96f;
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #777;
+    }
+
+    .roll-btn {
+      background: #e2b96f;
+      color: #1a1a2e;
+      border: none;
+      border-radius: 10px;
+      padding: 0.8rem 2.4rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-bottom: 2.5rem;
+    }
+
+    .roll-btn:hover { background: #f0cb88; }
+    .roll-btn:active { transform: scale(0.96); }
+    .roll-btn:disabled { background: #555; color: #999; cursor: not-allowed; }
+
+    .dice-area {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .die {
+      width: 80px;
+      height: 80px;
+      background: #fff;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.8rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      transition: transform 0.1s;
+      user-select: none;
+    }
+
+    .die.rolling {
+      animation: shake 0.5s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%   { transform: rotate(0deg) scale(1); }
+      20%  { transform: rotate(-12deg) scale(1.05); }
+      40%  { transform: rotate(12deg) scale(1.05); }
+      60%  { transform: rotate(-8deg) scale(1.02); }
+      80%  { transform: rotate(8deg) scale(1.02); }
+      100% { transform: rotate(0deg) scale(1); }
+    }
+
+    .sum-text {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 0.5rem;
+      min-height: 1.4rem;
+    }
+
+    .result {
+      font-size: 2.2rem;
+      font-weight: bold;
+      min-height: 2.8rem;
+      transition: opacity 0.3s;
+    }
+
+    .result.win  { color: #4cf07c; }
+    .result.lose { color: #f05c5c; }
+
+    .stats {
+      margin-top: 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+
+    .stat span {
+      display: block;
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #eee;
+    }
+
+    .reset-btn {
+      margin-top: 1.4rem;
+      background: none;
+      border: 1px solid #555;
+      color: #aaa;
+      border-radius: 8px;
+      padding: 0.4rem 1.2rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .reset-btn:hover { border-color: #aaa; color: #eee; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🎲 주사위 게임</h1>
+  <p class="subtitle">두 주사위의 합이 목표 숫자 이상이면 WIN!</p>
+
+  <div class="input-section">
+    <label for="target">목표 숫자 (2 ~ 12)</label>
+    <input type="number" id="target" value="7" min="2" max="12"
+           oninput="this.value = Math.min(12, Math.max(2, this.value || 2))">
+    <span class="hint">합이 이 숫자 이상이면 WIN</span>
+  </div>
+
+  <button class="roll-btn" id="rollBtn" onclick="roll()">주사위 굴리기</button>
+
+  <div class="dice-area">
+    <div class="die" id="die1">?</div>
+    <div class="die" id="die2">?</div>
+  </div>
+
+  <div class="sum-text" id="sumText"></div>
+  <div class="result" id="result"></div>
+
+  <div class="stats">
+    <div class="stat">승리<span id="winCount">0</span></div>
+    <div class="stat">패배<span id="loseCount">0</span></div>
+    <div class="stat">승률<span id="winRate">-</span></div>
+  </div>
+
+  <button class="reset-btn" onclick="resetStats()">기록 초기화</button>
+</div>
+
+<script>
+  const FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+  let wins = 0, losses = 0;
+
+  function roll() {
+    const targetInput = document.getElementById('target');
+    const target = parseInt(targetInput.value);
+
+    const sumText = document.getElementById('sumText');
+
+    if (isNaN(target) || target < 2 || target > 12) {
+      sumText.textContent = '⚠ 목표 숫자는 2~12 사이로 입력하세요.';
+      sumText.style.color = '#f05c5c';
+      return;
+    }
+    sumText.style.color = '';
+
+    const btn = document.getElementById('rollBtn');
+    const die1El = document.getElementById('die1');
+    const die2El = document.getElementById('die2');
+    const resultEl = document.getElementById('result');
+
+    btn.disabled = true;
+    resultEl.textContent = '';
+    resultEl.className = 'result';
+    sumText.textContent = '';
+
+    die1El.classList.add('rolling');
+    die2El.classList.add('rolling');
+
+    // Animate random faces during roll
+    let ticks = 0;
+    const interval = setInterval(() => {
+      die1El.textContent = FACES[Math.ceil(Math.random() * 6)];
+      die2El.textContent = FACES[Math.ceil(Math.random() * 6)];
+      ticks++;
+    }, 80);
+
+    setTimeout(() => {
+      clearInterval(interval);
+
+      const d1 = Math.ceil(Math.random() * 6);
+      const d2 = Math.ceil(Math.random() * 6);
+      const sum = d1 + d2;
+
+      die1El.textContent = FACES[d1];
+      die2El.textContent = FACES[d2];
+      die1El.classList.remove('rolling');
+      die2El.classList.remove('rolling');
+
+      sumText.textContent = `${d1} + ${d2} = ${sum}  (목표: ${target} 이상)`;
+
+      const isWin = sum >= target;
+      if (isWin) {
+        wins++;
+        resultEl.textContent = '🎉 WIN!';
+        resultEl.className = 'result win';
+      } else {
+        losses++;
+        resultEl.textContent = '💀 LOSE';
+        resultEl.className = 'result lose';
+      }
+
+      updateStats();
+      btn.disabled = false;
+    }, 600);
+  }
+
+  function updateStats() {
+    const total = wins + losses;
+    document.getElementById('winCount').textContent = wins;
+    document.getElementById('loseCount').textContent = losses;
+    document.getElementById('winRate').textContent = total > 0
+      ? Math.round(wins / total * 100) + '%'
+      : '-';
+  }
+
+  function resetStats() {
+    wins = 0; losses = 0;
+    updateStats();
+    document.getElementById('die1').textContent = '?';
+    document.getElementById('die2').textContent = '?';
+    document.getElementById('sumText').textContent = '';
+    document.getElementById('result').textContent = '';
+    document.getElementById('result').className = 'result';
+  }
+
+  // Enter key support
+  document.getElementById('target').addEventListener('keydown', e => {
+    if (e.key === 'Enter') roll();
+  });
+</script>
+</body>
+</html>
