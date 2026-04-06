@@ -503,7 +503,7 @@ class MemoStore {
     return this._memos.find(m => m.id === id) || null;
   }
 
-  create({ title = '', body = '' }) {
+  create({ title = '', body = '', reminderDatetime = null }) {
     const now = new Date().toISOString();
     const memo = {
       id: crypto.randomUUID(),
@@ -511,7 +511,7 @@ class MemoStore {
       body,
       createdAt: now,
       updatedAt: now,
-      reminder: { datetime: null, reminderFired: false }
+      reminder: { datetime: reminderDatetime, reminderFired: false }
     };
     this._memos.push(memo);
     this._persist();
@@ -624,7 +624,10 @@ class MemoStore {
       const raw = localStorage.getItem('memoapp_data');
       if (!raw) return [];
       const data = JSON.parse(raw);
-      return Array.isArray(data.memos) ? data.memos : [];
+      return Array.isArray(data.memos) ? data.memos.map(m => ({
+        ...m,
+        reminder: m.reminder ?? { datetime: null, reminderFired: false }
+      })) : [];
     } catch {
       return [];
     }
@@ -649,6 +652,10 @@ class ReminderService {
   stop() {
     if (this._pollTimer) clearInterval(this._pollTimer);
     this._pollTimer = null;
+  }
+
+  check() {
+    this._check();
   }
 
   _check() {
@@ -869,10 +876,8 @@ class UIController {
       const reminder = { datetime: newDatetime, reminderFired: fired };
       memo = this._store.update(existingId, { title, body, reminder });
     } else {
-      memo = this._store.create({ title, body });
-      if (reminderVal) {
-        this._store.setReminder(memo.id, new Date(reminderVal).toISOString());
-      }
+      const reminderDatetime = reminderVal ? new Date(reminderVal).toISOString() : null;
+      memo = this._store.create({ title, body, reminderDatetime });
     }
 
     if (isModal) {
@@ -964,20 +969,20 @@ class UIController {
 class App {
   init() {
     const store = new MemoStore();
-    const ui = new UIController(store, null);
+    const reminder = new ReminderService(store, null);
+    const ui = new UIController(store, reminder);
 
-    const reminder = new ReminderService(store, (memo, message) => {
+    reminder._onNotify = (memo, message) => {
       ui.showToast(message, memo.id);
-    });
+    };
 
-    ui._reminder = reminder;
     ui.init();
 
     store.onChange(() => ui.renderMemoList());
     reminder.start();
 
     document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) reminder._check();
+      if (!document.hidden) reminder.check();
     });
   }
 }
