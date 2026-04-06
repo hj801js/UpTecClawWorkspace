@@ -1,59 +1,59 @@
 # Message Protocol
 
-에이전트 간 메시지 양식. 인터널 챗 DM에서 사용한다.
+Message formats for inter-agent communication. Used in internal chat DMs.
 
-## 약식 메시지 (Short)
+## Short Message
 
-단순 확인, 승인, 상태 변경 등 정식 양식이 불필요한 경우 사용한다.
-
-```
-[약식] 수신: @대상에이전트 | 발신: 발신에이전트명 | 건명: 제목 | 상태: 완료/승인/확인 | 한줄: 요약
-```
-
-## 요청서 (Request)
+Used for simple confirmations, approvals, status changes, etc., where a formal format is unnecessary.
 
 ```
-[요청서]
-수신: @대상에이전트
-발신: 발신에이전트명
-일시: YYYY-MM-DD HH:MM
-건명: 요청 제목
-유형: 작업 | 조사 | 검토(RV) | 기타
-우선순위: 긴급 | 높음 | 보통 | 낮음
+[Short] To: @TargetAgent | From: SenderAgentName | Subject: Title | Status: Done/Approved/Confirmed | Summary: One-line summary
+```
+
+## Request
+
+```
+[Request]
+To: @TargetAgent
+From: SenderAgentName
+Date: YYYY-MM-DD HH:MM
+Subject: Request title
+Type: Task | Investigation | Review(RV) | Other
+Priority: Urgent | High | Normal | Low
 
 ---
-내용:
-(요청 사항을 구체적으로 기술)
+Details:
+(Describe the request in detail)
 
-조건/제약:
-- (있을 경우 기술)
+Conditions/Constraints:
+- (Describe if applicable)
 
-기한: YYYY-MM-DD 또는 즉시
-비고: (참고 사항)
+Deadline: YYYY-MM-DD or Immediate
+Notes: (Additional remarks)
 ```
 
-## 보고서 (Report)
+## Report
 
 ```
-[보고서]
-수신: @요청에이전트
-발신: 보고에이전트명
-일시: YYYY-MM-DD HH:MM
-건명: 보고 제목 (요청서 건명 참조)
-상태: 완료 | 진행중 | 보류 | 실패
+[Report]
+To: @RequestingAgent
+From: ReportingAgentName
+Date: YYYY-MM-DD HH:MM
+Subject: Report title (reference the Request subject)
+Status: Done | In Progress | On Hold | Failed
 
 ---
-결과:
-(수행 결과를 구체적으로 기술)
+Result:
+(Describe the outcome in detail)
 
-변경사항:
-- (파일/설정 변경 내역)
+Changes:
+- (File/config change history)
 
-검증:
-- (검증 방법 및 결과)
+Verification:
+- (Verification method and results)
 
-미해결:
-- (남은 사항, 없으면 "없음")
+Unresolved:
+- (Remaining items, or "None")
 
-비고: (참고 사항)
+Notes: (Additional remarks)
 ```

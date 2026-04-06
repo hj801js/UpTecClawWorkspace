@@ -1,34 +1,34 @@
 # Handoff — 2026-04-06 (Updated)
 
-## 세션 요약
+## Session Summary
 
-Phase 1~8 구현 완료. 대시보드를 3패널 레이아웃으로 전면 재구성.
-
----
-
-## 이번 세션 완료 작업
-
-### Phase 8.2~8.5: 고도화
-| # | 작업 | 설명 |
-|---|------|------|
-| 8.2 | 타임라인 뷰 | JSONL 이벤트 저장(500건), 타입별 필터링, Timeline 탭 |
-| 8.3 | 에이전트 메트릭 | 응답시간/성공률 수집, 24h 롤링윈도우, Metrics 탭 |
-| 8.4 | 핸드오프 개선 | 구조화 5섹션(tasks/decisions/pending/issues/context), 검증 |
-| 8.5 | 테스트 파이프라인 | DV 테스트 → RV 리뷰 자동 실행, Pipeline 탭 |
-
-### Phase 8.6~8.7: 대시보드 UI 개선
-| # | 작업 | 설명 |
-|---|------|------|
-| 8.6 | 3패널 레이아웃 | 왼쪽(정보) / 가운데(채팅) / 오른쪽(로그) |
-| 8.7 | 로그 탭 버그 수정 | class 불일치("tab"→"log-tab"), Cache-Control 추가 |
+Phases 1–8 implementation complete. Dashboard fully restructured to a 3-panel layout.
 
 ---
 
-## 현재 대시보드 구조 (3패널)
+## Work Completed This Session
+
+### Phase 8.2–8.5: Advanced Features
+| # | Task | Description |
+|---|------|-------------|
+| 8.2 | Timeline View | JSONL event storage (500 entries), filter by type, Timeline tab |
+| 8.3 | Agent Metrics | Response time/success rate collection, 24h rolling window, Metrics tab |
+| 8.4 | Handoff Improvements | Structured 5-section format (tasks/decisions/pending/issues/context), validation |
+| 8.5 | Test Pipeline | DV test → RV review auto-execution, Pipeline tab |
+
+### Phase 8.6–8.7: Dashboard UI Improvements
+| # | Task | Description |
+|---|------|-------------|
+| 8.6 | 3-Panel Layout | Left (info) / Center (chat) / Right (logs) |
+| 8.7 | Log Tab Bug Fix | Class mismatch ("tab"→"log-tab"), Cache-Control added |
+
+---
+
+## Current Dashboard Structure (3-Panel)
 
 ```
 +------------------+------------------+------------------+
-| LEFT (정보)       | CENTER (채팅)     | RIGHT (로그)      |
+| LEFT (Info)      | CENTER (Chat)    | RIGHT (Logs)     |
 |                  |                  |                  |
 | Timeline         | User — OR Chat   | ALL              |
 | Metrics          | Agent Chat       | OR PM AR DV RV DO|
@@ -40,65 +40,65 @@ Phase 1~8 구현 완료. 대시보드를 3패널 레이아웃으로 전면 재�
 
 ---
 
-## API 엔드포인트 (전체)
+## API Endpoints (Full List)
 
-| Method | Path | 설명 |
-|--------|------|------|
-| GET | `/api/agents` | 에이전트 목록 + 실행 상태 |
-| POST | `/api/agents/:agent/start` | 에이전트 시작 |
-| POST | `/api/agents/:agent/stop` | 에이전트 중지 |
-| GET | `/api/health` | 헬스체크 |
-| GET | `/api/workspace` | 워크스페이스 용량 |
-| POST | `/api/chat` | 에이전트 DM 전송 |
-| GET | `/api/dm/pairs` | DM 로그 pair 목록 |
-| GET | `/api/dm/:from/:to` | DM 로그 조회 |
-| GET | `/api/user-or/history` | User-OR 채팅 히스토리 |
-| POST | `/api/user-or/chat` | User → OR 메시지 |
-| GET | `/api/projects` | 프로젝트 목록 |
-| POST | `/api/projects` | 프로젝트 등록/갱신 |
-| PATCH | `/api/projects/:name/editable` | 프로젝트 잠금 토글 |
-| GET | `/api/timeline` | 타임라인 이벤트 (?limit, ?agent, ?type) |
-| GET | `/api/metrics` | 전체 메트릭 요약 |
-| GET | `/api/metrics/:agent` | 에이전트별 상세 메트릭 |
-| POST | `/api/handoff/:agent` | 구조화 핸드오프 실행 |
-| GET | `/api/handoff/:agent` | 핸드오프 조회 + 검증 |
-| GET | `/api/pipelines` | 파이프라인 목록 |
-| POST | `/api/pipelines` | 파이프라인 실행 |
-| GET | `/api/pipelines/:id` | 파이프라인 상태 조회 |
-
----
-
-## 등록된 프로젝트 (3건)
-
-| 이름 | 상태 | URL |
-|------|------|-----|
-| game | 완료 (LOCKED) | https://hj801js.github.io/UpTecClawWorkspace/game/ |
-| rock-paper-scissors | 완료 (LOCKED) | https://hj801js.github.io/UpTecClawWorkspace/rock-paper-scissors/ |
-| presentation | 완료 (LOCKED) | https://hj801js.github.io/UpTecClawWorkspace/presentation/ |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/agents` | Agent list + running status |
+| POST | `/api/agents/:agent/start` | Start agent |
+| POST | `/api/agents/:agent/stop` | Stop agent |
+| GET | `/api/health` | Health check |
+| GET | `/api/workspace` | Workspace capacity |
+| POST | `/api/chat` | Send agent DM |
+| GET | `/api/dm/pairs` | DM log pair list |
+| GET | `/api/dm/:from/:to` | View DM logs |
+| GET | `/api/user-or/history` | User-OR chat history |
+| POST | `/api/user-or/chat` | User → OR message |
+| GET | `/api/projects` | Project list |
+| POST | `/api/projects` | Register/update project |
+| PATCH | `/api/projects/:name/editable` | Toggle project lock |
+| GET | `/api/timeline` | Timeline events (?limit, ?agent, ?type) |
+| GET | `/api/metrics` | Overall metrics summary |
+| GET | `/api/metrics/:agent` | Per-agent detailed metrics |
+| POST | `/api/handoff/:agent` | Execute structured handoff |
+| GET | `/api/handoff/:agent` | View handoff + validation |
+| GET | `/api/pipelines` | Pipeline list |
+| POST | `/api/pipelines` | Execute pipeline |
+| GET | `/api/pipelines/:id` | View pipeline status |
 
 ---
 
-## 주요 파일 경로
+## Registered Projects (3 total)
 
-| 파일 | 용도 |
-|------|------|
-| `UpTecClaw/bot/app.js` | Slack 에이전트 봇 |
-| `UpTecClaw/bot/dashboard.js` | 웹 대시보드 (3패널) |
-| `UpTecClaw/bot/config.js` | 공유 설정 (모델, 상수) |
-| `UpTecClaw/bot/dm_logs/` | DM 대화 로그 |
-| `UpTecClaw/bot/projects.json` | 프로젝트 기록 |
-| `UpTecClaw/bot/timeline.jsonl` | 타임라인 이벤트 (최대 500건) |
-| `UpTecClaw/bot/metrics.json` | 에이전트 성능 메트릭 |
-| `UpTecClaw/bot/test_pipeline.json` | 파이프라인 실행 기록 |
-| `UpTecClaw/agents.json` | 에이전트 정의 |
-| `UpTecClaw_Workspace/CLAUDE.md` | 에이전트 규칙 (핵심) |
+| Name | Status | URL |
+|------|--------|-----|
+| game | Complete (LOCKED) | https://hj801js.github.io/UpTecClawWorkspace/game/ |
+| rock-paper-scissors | Complete (LOCKED) | https://hj801js.github.io/UpTecClawWorkspace/rock-paper-scissors/ |
+| presentation | Complete (LOCKED) | https://hj801js.github.io/UpTecClawWorkspace/presentation/ |
 
 ---
 
-## 다음 작업
+## Key File Paths
 
-- Phase 8.1: 멀티 프로젝트 동시 관리 (Todo)
+| File | Purpose |
+|------|---------|
+| `UpTecClaw/bot/app.js` | Slack agent bot |
+| `UpTecClaw/bot/dashboard.js` | Web dashboard (3-panel) |
+| `UpTecClaw/bot/config.js` | Shared config (models, constants) |
+| `UpTecClaw/bot/dm_logs/` | DM conversation logs |
+| `UpTecClaw/bot/projects.json` | Project records |
+| `UpTecClaw/bot/timeline.jsonl` | Timeline events (max 500 entries) |
+| `UpTecClaw/bot/metrics.json` | Agent performance metrics |
+| `UpTecClaw/bot/test_pipeline.json` | Pipeline execution records |
+| `UpTecClaw/agents.json` | Agent definitions |
+| `UpTecClaw_Workspace/CLAUDE.md` | Agent rules (core) |
 
 ---
 
-## 완성도: 9.7/10
+## Next Steps
+
+- Phase 8.1: Multi-project concurrent management (Todo)
+
+---
+
+## Completeness: 9.7/10

@@ -1,28 +1,28 @@
 # Review-Deploy Pipeline
 
-## 흐름
+## Flow
 
-1. OR → RV: 결과물 경로와 리뷰 요청 전달
-2. RV: 평가 (점수 X.X/10.0 + 피드백)
-3. 점수 >= 기준점 → OR → DO: 배포 지시
-4. 점수 < 기준점 → OR → DV: RV 피드백 전달, DV 수정 후 재리뷰
+1. OR -> RV: Deliver deliverable path and review request
+2. RV: Evaluate (score X.X/10.0 + feedback)
+3. Score >= threshold -> OR -> DO: Issue deploy instruction
+4. Score < threshold -> OR -> DV: Forward RV feedback, DV revises and resubmits for review
 
-## 기준점 규칙
-- 초기 기준: 9.0/10.0
-- 10회 반복 미달 → 기준 1.0 하향 (9.0 → 8.0 → 7.0 → ...)
-- 프로젝트별로 리뷰 횟수와 기준점을 추적
+## Threshold Rules
+- Initial threshold: 9.0/10.0
+- After 10 consecutive failures to meet threshold -> lower threshold by 1.0 (9.0 -> 8.0 -> 7.0 -> ...)
+- Track review count and threshold per project
 
-## RV 평가 형식
+## RV Evaluation Format
 ```
 ## Review Result
 Score: X.X/10.0
-항목별: 정확성(X) 품질(X) 테스트(X) 보안(X) 요구충족(X)
-피드백: (구체적 개선사항)
-결론: PASS / FAIL
+Categories: Accuracy(X) Quality(X) Testing(X) Security(X) Requirements(X)
+Feedback: (Specific improvements)
+Conclusion: PASS / FAIL
 ```
 
-## 에러 에스컬레이션
-1. 차단 발생 → STATUS.md에 `차단됨` 기록
-2. OR에 보고 → 보고서(실패/보류) 전달
-3. OR 판단 → 재배분 또는 사용자 에스컬레이션
-4. 사용자 에스컬레이션 → 슬랙으로 알림
+## Error Escalation
+1. Blocker occurs -> Record `Blocked` in STATUS.md
+2. Report to OR -> Submit report (Failed/On Hold)
+3. OR decides -> Reassign or escalate to user
+4. User escalation -> Notify via Slack

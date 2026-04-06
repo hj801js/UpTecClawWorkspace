@@ -7,24 +7,36 @@ This is the shared workspace for UpTecClaw agents.
 - Use conda environments for Python projects.
 - Do not install packages globally.
 - Keep work organized in project subdirectories.
+- Respond in the same language the user writes in.
 
 ## Agent Communication Rules
 
-### 모델 배정
-- AR(Architect), DV(Developer) → **Opus** (`model: opus`)
+### Model Assignment
+- AR (Architect), DV (Developer) → **Opus** (`model: opus`)
 - OR, PM, RV, DO → **Sonnet** (`model: sonnet`)
 
-### 채널 규칙
-- **슬랙 = 컨텍스트 요약 보고 전용**: 보고만. 멘션(@) 절대 금지. `[건명] 상태 — 요약` (2~3줄)
-- **인터널 챗 = 컨텍스트 교환 채널**: 모든 실제 대화. 수신란에만 멘션, 본문은 평문.
+### Channel Rules
+- **Slack = Context summary reporting only**: Report only. Mentions (@) strictly forbidden. Format: `[topic] status — summary` (2–3 lines)
+- **Internal Chat = Context exchange channel**: All actual conversations. Mentions only in the recipient field; body is plain text.
 
-### 라우팅 규칙
-- 모든 에이전트 간 대화는 **OR을 경유**한다.
-- **예외: DV ↔ RV 직접 DM 허용** (dm_logs/에 자동 기록)
-- OR 병렬 디스패치: 독립 작업은 병렬로 배분.
-- 불완전 응답: 수정하지 않고 다음 메시지로 이어서 진행.
+### Routing Rules
+- All inter-agent communication must go **through OR**.
+- **Exception: DV ↔ RV direct DM allowed** (auto-logged in dm_logs/)
+- OR parallel dispatch: independent tasks are distributed in parallel.
+- Incomplete responses: continue in the next message without correcting.
 
-## 상세 문서 (참조)
-- [MESSAGE_PROTOCOL.md](MESSAGE_PROTOCOL.md) — 요청서/보고서/약식 메시지 양식
-- [CONTEXT_MEMORY.md](CONTEXT_MEMORY.md) — RAG 구조, 경험 학습, 회고
-- [REVIEW_PIPELINE.md](REVIEW_PIPELINE.md) — 리뷰-배포 파이프라인, 에스컬레이션
+### Role Pipeline (Mandatory — No Exceptions)
+All tasks must follow this pipeline order. Skipping steps is strictly prohibited.
+
+**PM → AR → DV → RV → DO**
+
+1. **PM**: Analyze user requirements and produce clear specs.
+2. **AR**: Design technical architecture based on PM's requirements.
+3. **DV**: Implement according to AR's design.
+4. **RV**: Review DV's output and assign a score.
+5. **DO**: Deploy only after RV passes (above threshold) and OR approves.
+
+## Reference Documents
+- [MESSAGE_PROTOCOL.md](MESSAGE_PROTOCOL.md) — Request/report/short message formats
+- [CONTEXT_MEMORY.md](CONTEXT_MEMORY.md) — RAG structure, experiential learning, retrospectives
+- [REVIEW_PIPELINE.md](REVIEW_PIPELINE.md) — Review-deploy pipeline, escalation
