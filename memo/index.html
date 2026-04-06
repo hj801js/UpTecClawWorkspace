@@ -332,12 +332,24 @@ input:focus, textarea:focus, select:focus {
   font-size: 14px;
   margin-right: 4px;
   cursor: pointer;
-  opacity: 0.25;
+  opacity: 0;
   transition: opacity 0.15s;
+}
+
+.memo-card:hover .memo-pin {
+  opacity: 0.35;
 }
 
 .memo-pin.pinned {
   opacity: 1;
+}
+
+.memo-pin:hover {
+  opacity: 0.7 !important;
+}
+
+.memo-pin.pinned:hover {
+  opacity: 1 !important;
 }
 
 .memo-card:hover .memo-pin {
@@ -917,20 +929,22 @@ input:focus, textarea:focus, select:focus {
 
 <script>
 /* ================================================================
-   Utility — 공유 헬퍼
+   Utils — 공통 유틸리티 클래스
    ================================================================ */
-function toLocalDateStr(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+class Utils {
+  static toLocalDateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
 
-function escapeHtml(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
+  static escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
 
-function escapeAttr(str) {
-  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  static escapeAttr(str) {
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 }
 
 /* ================================================================
@@ -951,13 +965,7 @@ class StorageAdapter {
   }
 
   save(key, data) {
-    try {
-      localStorage.setItem(this._prefix + key, JSON.stringify(data));
-    } catch (e) {
-      const warning = document.getElementById('storage-warning');
-      if (warning) warning.style.display = 'block';
-      console.error('Storage save failed:', e);
-    }
+    localStorage.setItem(this._prefix + key, JSON.stringify(data));
   }
 
   exportAll() {
@@ -975,9 +983,20 @@ class StorageAdapter {
   }
 
   importAll(jsonString) {
-    const data = JSON.parse(jsonString);
-    if (!data.version || !Array.isArray(data.memos) || !Array.isArray(data.reminders)) {
+    let data;
+    try {
+      data = JSON.parse(jsonString);
+    } catch {
+      throw new Error('유효하지 않은 JSON 형식입니다.');
+    }
+    if (typeof data !== 'object' || data === null) {
       throw new Error('올바르지 않은 백업 형식입니다.');
+    }
+    if (typeof data.version !== 'number' || data.version < 1) {
+      throw new Error('지원하지 않는 백업 버전입니다.');
+    }
+    if (!Array.isArray(data.memos) || !Array.isArray(data.reminders)) {
+      throw new Error('memos 또는 reminders 배열이 누락되었습니다.');
     }
     // Validate memo fields
     data.memos = data.memos.filter(m =>
@@ -1325,7 +1344,7 @@ class MemoListView {
     this._container = containerEl;
     this._memoManager = memoManager;
     this._reminderManager = reminderManager;
-    this._confirmFn = confirmFn || ((msg, cb) => { if (confirm(msg)) cb(); });
+    this._confirmFn = confirmFn;
     this._onEdit = onEdit;
     this._searchQuery = '';
     this._bindEvents();
@@ -1355,10 +1374,10 @@ class MemoListView {
         <div class="memo-card memo-${memo.color}" data-id="${memo.id}">
           <div class="memo-card-header">
             <span class="memo-pin ${memo.pinned ? 'pinned' : ''}" data-action="toggle-pin" data-id="${memo.id}" title="핀 고정">📌</span>
-            <span class="memo-card-title">${escapeHtml(memo.title || '제목 없음')}</span>
+            <span class="memo-card-title">${Utils.escapeHtml(memo.title || '제목 없음')}</span>
             <button class="memo-card-delete" data-action="delete-memo" data-id="${memo.id}" title="삭제">✕</button>
           </div>
-          <div class="memo-card-content">${escapeHtml(memo.content || '')}</div>
+          <div class="memo-card-content">${Utils.escapeHtml(memo.content || '')}</div>
           <div class="memo-card-footer">
             ${reminderCount > 0 ? `<span class="memo-card-reminder-badge">🔔 ${reminderCount}건</span>` : ''}
             <span>${this._relativeTime(memo.updatedAt)}</span>
@@ -1393,8 +1412,8 @@ class MemoListView {
     const memo = this._memoManager.getById(id);
     if (!memo) return;
     this._confirmFn(`"${memo.title || '제목 없음'}" 메모를 삭제하시겠습니까?`, () => {
-      this._memoManager.delete(id);
       this._reminderManager.deleteByMemoId(id);
+      this._memoManager.delete(id);
     });
   }
 
@@ -1421,7 +1440,7 @@ class MemoEditorView {
     this._modal = modalEl;
     this._memoManager = memoManager;
     this._reminderManager = reminderManager;
-    this._confirmFn = confirmFn || ((msg, cb) => { if (confirm(msg)) cb(); });
+    this._confirmFn = confirmFn;
     this._editingId = null;
     this._selectedColor = 'yellow';
     this._pendingReminders = []; // Reminders to add on save
@@ -1495,8 +1514,8 @@ class MemoEditorView {
     document.getElementById('btn-delete-memo').addEventListener('click', () => {
       if (this._editingId) {
         this._confirmFn('이 메모를 삭제하시겠습니까?', () => {
-          this._memoManager.delete(this._editingId);
           this._reminderManager.deleteByMemoId(this._editingId);
+          this._memoManager.delete(this._editingId);
           this.close();
         });
       }
@@ -1573,11 +1592,11 @@ class MemoEditorView {
     const container = document.getElementById('memo-reminder-list');
     container.innerHTML = this._pendingReminders.map((r, idx) => {
       const dueDate = r.dueAt ? new Date(r.dueAt) : null;
-      const dateVal = dueDate ? toLocalDateStr(dueDate) : '';
+      const dateVal = dueDate ? Utils.toLocalDateStr(dueDate) : '';
       const timeVal = dueDate ? dueDate.toTimeString().slice(0, 5) : '';
       return `
         <div class="reminder-row" data-idx="${idx}" data-reminder-id="${r.id || ''}">
-          <input type="text" class="reminder-row-title" placeholder="리마인더 제목" value="${escapeAttr(r.title || '')}" style="flex: 2;">
+          <input type="text" class="reminder-row-title" placeholder="리마인더 제목" value="${Utils.escapeAttr(r.title || '')}" style="flex: 2;">
           <input type="date" class="reminder-row-date" value="${dateVal}">
           <input type="time" class="reminder-row-time" value="${timeVal}">
           <button data-action="remove-reminder-row" data-idx="${idx}" style="color: var(--danger); font-size: 16px;">✕</button>
@@ -1612,7 +1631,7 @@ class ReminderListView {
     this._memoManager = memoManager;
     this._onEditMemo = onEditMemo;
     this._onEditReminder = onEditReminder;
-    this._confirmFn = confirmFn || ((msg, cb) => { if (confirm(msg)) cb(); });
+    this._confirmFn = confirmFn;
     this._bindEvents();
   }
 
@@ -1640,9 +1659,9 @@ class ReminderListView {
         <div class="${classes.join(' ')}" data-id="${r.id}">
           <input type="checkbox" class="reminder-checkbox" data-action="toggle-done" data-id="${r.id}" ${r.done ? 'checked' : ''}>
           <div class="reminder-content">
-            <div class="reminder-title">${escapeHtml(r.title)}</div>
+            <div class="reminder-title">${Utils.escapeHtml(r.title)}</div>
             <div class="reminder-due">${this._formatDue(r.dueAt)}${isOverdue ? ' (만료)' : ''}</div>
-            ${memo ? `<span class="reminder-memo-link" data-action="open-memo" data-memo-id="${memo.id}">📝 ${escapeHtml(memo.title || '제목 없음')}</span>` : ''}
+            ${memo ? `<span class="reminder-memo-link" data-action="open-memo" data-memo-id="${memo.id}">📝 ${Utils.escapeHtml(memo.title || '제목 없음')}</span>` : ''}
           </div>
           <div class="reminder-actions">
             <button data-action="edit-reminder" data-id="${r.id}" title="편집">✏️</button>
@@ -1723,6 +1742,118 @@ class SearchBar {
 }
 
 /* ================================================================
+   ReminderEditorView — 리마인더 생성/수정 모달
+   ================================================================ */
+class ReminderEditorView {
+  constructor(modalEl, reminderManager, memoManager, confirmFn) {
+    this._modal = modalEl;
+    this._reminderManager = reminderManager;
+    this._memoManager = memoManager;
+    this._confirmFn = confirmFn;
+    this._editingId = null;
+    this._bindEvents();
+  }
+
+  open(reminderId = null) {
+    const titleEl = document.getElementById('reminder-modal-title');
+    const titleInput = document.getElementById('reminder-title-input');
+    const dateInput = document.getElementById('reminder-date-input');
+    const timeInput = document.getElementById('reminder-time-input');
+    const memoSelect = document.getElementById('reminder-memo-select');
+    const deleteBtn = document.getElementById('btn-delete-reminder');
+
+    // Populate memo select
+    const memos = this._memoManager.getAll();
+    memoSelect.innerHTML = '<option value="">없음</option>';
+    memos.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.title || '제목 없음';
+      memoSelect.appendChild(opt);
+    });
+
+    if (reminderId) {
+      const r = this._reminderManager.getById(reminderId);
+      if (!r) return;
+      titleEl.textContent = '리마인더 편집';
+      titleInput.value = r.title;
+      if (r.dueAt) {
+        const d = new Date(r.dueAt);
+        dateInput.value = Utils.toLocalDateStr(d);
+        timeInput.value = d.toTimeString().slice(0, 5);
+      }
+      memoSelect.value = r.memoId || '';
+      deleteBtn.style.display = 'inline-block';
+      this._editingId = reminderId;
+    } else {
+      titleEl.textContent = '새 리마인더';
+      titleInput.value = '';
+      const now = new Date();
+      now.setHours(now.getHours() + 1, 0, 0, 0);
+      dateInput.value = Utils.toLocalDateStr(now);
+      timeInput.value = now.toTimeString().slice(0, 5);
+      memoSelect.value = '';
+      deleteBtn.style.display = 'none';
+      this._editingId = null;
+    }
+
+    this._modal.classList.add('visible');
+    titleInput.focus();
+  }
+
+  close() {
+    this._modal.classList.remove('visible');
+  }
+
+  _bindEvents() {
+    const titleInput = document.getElementById('reminder-title-input');
+    const dateInput = document.getElementById('reminder-date-input');
+    const timeInput = document.getElementById('reminder-time-input');
+    const memoSelect = document.getElementById('reminder-memo-select');
+
+    this._modal.addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="close-reminder-modal"]') || e.target === this._modal) {
+        this.close();
+      }
+    });
+
+    this._modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.close();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('btn-save-reminder').click();
+      }
+    });
+
+    document.getElementById('btn-save-reminder').addEventListener('click', () => {
+      const title = titleInput.value.trim();
+      const date = dateInput.value;
+      const time = timeInput.value;
+      if (!title || !date || !time) return;
+
+      const dueAt = new Date(`${date}T${time}`).toISOString();
+      const memoId = memoSelect.value || null;
+
+      if (this._editingId) {
+        this._reminderManager.update(this._editingId, { title, dueAt, memoId });
+      } else {
+        this._reminderManager.create({ title, dueAt, memoId });
+      }
+      this.close();
+    });
+
+    document.getElementById('btn-delete-reminder').addEventListener('click', () => {
+      if (this._editingId) {
+        this._confirmFn('이 리마인더를 삭제하시겠습니까?', () => {
+          this._reminderManager.delete(this._editingId);
+          this.close();
+        });
+      }
+    });
+  }
+}
+
+/* ================================================================
    App — 메인 컨트롤러
    ================================================================ */
 class App {
@@ -1753,7 +1884,8 @@ class App {
     this._updateThemeButton();
 
     // 6. Views
-    const confirmFn = (msg, cb) => App.confirm(msg, cb);
+    this._confirmFn = (msg, cb) => App.confirm(msg, cb);
+    const confirmFn = this._confirmFn;
 
     this._memoListView = new MemoListView(
       document.getElementById('memo-grid'),
@@ -1770,12 +1902,19 @@ class App {
       confirmFn
     );
 
+    this._reminderEditorView = new ReminderEditorView(
+      document.getElementById('reminder-modal'),
+      this._reminderManager,
+      this._memoManager,
+      confirmFn
+    );
+
     this._reminderListView = new ReminderListView(
       document.getElementById('reminder-list'),
       this._reminderManager,
       this._memoManager,
       (memoId) => this._memoEditorView.open(memoId),
-      (id) => this.openReminderEditor(id),
+      (id) => this._reminderEditorView.open(id),
       confirmFn
     );
 
@@ -1850,7 +1989,7 @@ class App {
 
     // New reminder (standalone)
     document.getElementById('btn-new-reminder').addEventListener('click', () => {
-      this.openReminderEditor(null);
+      this._reminderEditorView.open(null);
     });
 
     // Theme toggle
@@ -1909,99 +2048,6 @@ class App {
     });
   }
 
-  openReminderEditor(reminderId) {
-    const modal = document.getElementById('reminder-modal');
-    const titleEl = document.getElementById('reminder-modal-title');
-    const titleInput = document.getElementById('reminder-title-input');
-    const dateInput = document.getElementById('reminder-date-input');
-    const timeInput = document.getElementById('reminder-time-input');
-    const memoSelect = document.getElementById('reminder-memo-select');
-    const deleteBtn = document.getElementById('btn-delete-reminder');
-
-    // Populate memo select
-    const memos = this._memoManager.getAll();
-    memoSelect.innerHTML = '<option value="">없음</option>';
-    memos.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = m.title || '제목 없음';
-      memoSelect.appendChild(opt);
-    });
-
-    if (reminderId) {
-      const r = this._reminderManager.getById(reminderId);
-      if (!r) return;
-      titleEl.textContent = '리마인더 편집';
-      titleInput.value = r.title;
-      if (r.dueAt) {
-        const d = new Date(r.dueAt);
-        dateInput.value = toLocalDateStr(d);
-        timeInput.value = d.toTimeString().slice(0, 5);
-      }
-      memoSelect.value = r.memoId || '';
-      deleteBtn.style.display = 'inline-block';
-      this._reminderEditingId = reminderId;
-    } else {
-      titleEl.textContent = '새 리마인더';
-      titleInput.value = '';
-      const now = new Date();
-      now.setHours(now.getHours() + 1, 0, 0, 0);
-      dateInput.value = toLocalDateStr(now);
-      timeInput.value = now.toTimeString().slice(0, 5);
-      memoSelect.value = '';
-      deleteBtn.style.display = 'none';
-      this._reminderEditingId = null;
-    }
-
-    modal.classList.add('visible');
-    titleInput.focus();
-
-    // Bind save/close (one-time setup)
-    if (!this._reminderBound) {
-      this._reminderBound = true;
-
-      modal.addEventListener('click', (e) => {
-        if (e.target.closest('[data-action="close-reminder-modal"]') || e.target === modal) {
-          modal.classList.remove('visible');
-        }
-      });
-
-      modal.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') modal.classList.remove('visible');
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-          e.preventDefault();
-          document.getElementById('btn-save-reminder').click();
-        }
-      });
-
-      document.getElementById('btn-save-reminder').addEventListener('click', () => {
-        const title = titleInput.value.trim();
-        const date = dateInput.value;
-        const time = timeInput.value;
-        if (!title || !date || !time) return;
-
-        const dueAt = new Date(`${date}T${time}`).toISOString();
-        const memoId = memoSelect.value || null;
-
-        if (this._reminderEditingId) {
-          this._reminderManager.update(this._reminderEditingId, { title, dueAt, memoId });
-        } else {
-          this._reminderManager.create({ title, dueAt, memoId });
-        }
-        modal.classList.remove('visible');
-      });
-
-      document.getElementById('btn-delete-reminder').addEventListener('click', () => {
-        if (this._reminderEditingId) {
-          App.confirm('이 리마인더를 삭제하시겠습니까?', () => {
-            this._reminderManager.delete(this._reminderEditingId);
-            modal.classList.remove('visible');
-          });
-        }
-      });
-    }
-  }
-
   _updateThemeButton() {
     document.getElementById('btn-theme').textContent = this._themeManager.getIcon();
   }
@@ -2010,10 +2056,15 @@ class App {
     const banner = document.getElementById('notification-banner');
     document.getElementById('banner-text').textContent = text;
     banner.classList.add('visible');
+    if (this._bannerTimer) clearTimeout(this._bannerTimer);
+    this._bannerTimer = setTimeout(() => {
+      banner.classList.remove('visible');
+      this._bannerTimer = null;
+    }, 5000);
   }
 
   _clearAllData() {
-    App.confirm('모든 메모와 리마인더를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?', () => {
+    this._confirmFn('모든 메모와 리마인더를 삭제합니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?', () => {
       this._storage.clearAll();
       this._memoManager.reload();
       this._reminderManager.reload();
@@ -2028,12 +2079,14 @@ class App {
     const date = new Date().toISOString().slice(0, 10);
     a.href = url;
     a.download = `memokeep_backup_${date}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
   _importData(file) {
-    App.confirm('기존 데이터를 백업 파일로 교체합니다. 계속하시겠습니까?', () => {
+    this._confirmFn('기존 데이터를 백업 파일로 교체합니다. 계속하시겠습니까?', () => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -2048,40 +2101,44 @@ class App {
     });
   }
 
-  /* ---- Confirm dialog utility ---- */
-  static _confirmCallback = null;
+  /* ---- Confirm dialog (per-call binding, no listener duplication) ---- */
+  static _confirmCleanup = null;
 
   static confirm(message, onConfirm) {
+    if (App._confirmCleanup) App._confirmCleanup();
+
     const overlay = document.getElementById('confirm-overlay');
+    const okBtn = document.getElementById('confirm-ok');
+    const cancelBtn = document.getElementById('confirm-cancel');
+
     document.getElementById('confirm-text').textContent = message;
     overlay.classList.add('visible');
-    App._confirmCallback = onConfirm;
-  }
 
-  static _initConfirmDialog() {
-    const overlay = document.getElementById('confirm-overlay');
-    document.getElementById('confirm-cancel').addEventListener('click', () => {
+    const cleanup = () => {
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlay);
+      App._confirmCleanup = null;
+    };
+
+    const close = () => {
       overlay.classList.remove('visible');
-      App._confirmCallback = null;
-    });
-    document.getElementById('confirm-ok').addEventListener('click', () => {
-      overlay.classList.remove('visible');
-      if (App._confirmCallback) {
-        App._confirmCallback();
-        App._confirmCallback = null;
-      }
-    });
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.classList.remove('visible');
-        App._confirmCallback = null;
-      }
-    });
+      cleanup();
+    };
+
+    const onOk = () => { close(); onConfirm(); };
+    const onCancel = () => { close(); };
+    const onOverlay = (e) => { if (e.target === overlay) close(); };
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+
+    App._confirmCleanup = cleanup;
   }
 }
 
 // ===== Bootstrap =====
-App._initConfirmDialog();
 new App();
 </script>
 </body>
