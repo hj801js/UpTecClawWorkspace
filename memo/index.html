@@ -1200,6 +1200,10 @@ class ReminderManager {
     }
   }
 
+  checkDue() {
+    this._checkDue();
+  }
+
   _checkDue() {
     const now = new Date();
     let changed = false;
@@ -1287,10 +1291,11 @@ class ThemeManager {
    MemoListView — 메모 카드 그리드 렌더링
    ================================================================ */
 class MemoListView {
-  constructor(containerEl, memoManager, reminderManager, onEdit) {
+  constructor(containerEl, memoManager, reminderManager, onEdit, confirmFn) {
     this._container = containerEl;
     this._memoManager = memoManager;
     this._reminderManager = reminderManager;
+    this._confirmFn = confirmFn || ((msg, cb) => { if (confirm(msg)) cb(); });
     this._onEdit = onEdit;
     this._searchQuery = '';
     this._bindEvents();
@@ -1357,7 +1362,7 @@ class MemoListView {
   _onDeleteRequest(id) {
     const memo = this._memoManager.getById(id);
     if (!memo) return;
-    App.confirm(`"${memo.title || '제목 없음'}" 메모를 삭제하시겠습니까?`, () => {
+    this._confirmFn(`"${memo.title || '제목 없음'}" 메모를 삭제하시겠습니까?`, () => {
       this._memoManager.delete(id);
       this._reminderManager.deleteByMemoId(id);
     });
@@ -1581,11 +1586,13 @@ class MemoEditorView {
    ReminderListView — 리마인더 목록 렌더링
    ================================================================ */
 class ReminderListView {
-  constructor(containerEl, reminderManager, memoManager, onEditMemo) {
+  constructor(containerEl, reminderManager, memoManager, onEditMemo, onEditReminder, confirmFn) {
     this._container = containerEl;
     this._reminderManager = reminderManager;
     this._memoManager = memoManager;
     this._onEditMemo = onEditMemo;
+    this._onEditReminder = onEditReminder;
+    this._confirmFn = confirmFn || ((msg, cb) => { if (confirm(msg)) cb(); });
     this._bindEvents();
   }
 
@@ -1782,7 +1789,7 @@ class App {
     // 10. visibilitychange
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        this._reminderManager._checkDue();
+        this._reminderManager.checkDue();
       }
     });
 
