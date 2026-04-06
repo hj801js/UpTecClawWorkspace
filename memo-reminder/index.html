@@ -1392,11 +1392,10 @@ class MemoListView {
    MemoEditorView — 생성/수정 모달
    ================================================================ */
 class MemoEditorView {
-  constructor(modalEl, memoManager, reminderManager, confirmFn) {
+  constructor(modalEl, memoManager, reminderManager) {
     this._modal = modalEl;
     this._memoManager = memoManager;
     this._reminderManager = reminderManager;
-    this._confirmFn = confirmFn || ((msg, cb) => { if (confirm(msg)) cb(); });
     this._editingId = null;
     this._selectedColor = 'yellow';
     this._pendingReminders = []; // Reminders to add on save
