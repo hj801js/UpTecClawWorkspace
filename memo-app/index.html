@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MemoKeep</title>
+<style>
+/* ── CSS Variables ── */
+:root {
+  --bg-primary:    #ffffff;
+  --bg-secondary:  #f8f9fa;
+  --bg-card:       #ffffff;
+  --text-primary:  #1a1a1a;
+  --text-secondary:#666666;
+  --border:        #e0e0e0;
+  --accent:        #4a90d9;
+  --accent-hover:  #3a7bc8;
+  --reminder:      #f59e0b;
+  --reminder-fired:#9ca3af;
+  --danger:        #ef4444;
+  --danger-hover:  #dc2626;
+  --radius:        8px;
+  --shadow:        0 1px 3px rgba(0,0,0,0.08);
+  --font:          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.search-wrapper {
+  flex: 1;
+  min-width: 160px;
+  max-width: 400px;
+  position: relative;
+}
+.search-wrapper input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-wrapper input:focus { border-color: var(--accent); }
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+.header-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--bg-secondary); border-color: var(--accent); }
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-danger { color: var(--danger); border-color: var(--danger); }
+.btn-danger:hover { background: #fef2f2; }
+
+/* ── Main Layout: 2-panel ── */
+.main {
+  display: flex;
+  height: calc(100vh - 57px);
+}
+.panel-list {
+  width: 380px;
+  min-width: 300px;
+  border-right: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-editor {
+  flex: 1;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── List Panel ── */
+.list-toolbar {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.list-toolbar .memo-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-left: auto;
+}
+.memo-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+.memo-list::-webkit-scrollbar { width: 6px; }
+.memo-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Memo Card ── */
+.memo-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  position: relative;
+}
+.memo-card:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.memo-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(74,144,217,0.2); }
+.memo-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.memo-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memo-card-delete {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+}
+.memo-card:hover .memo-card-delete { opacity: 1; }
+.memo-card-delete:hover { color: var(--danger); }
+.memo-card-body {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  margin-bottom: 6px;
+  min-height: 1.4em;
+}
+.memo-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.reminder-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #fffbeb;
+  color: var(--reminder);
+}
+.reminder-badge.fired {
+  background: #f3f4f6;
+  color: var(--reminder-fired);
+}
+
+/* ── Editor Panel ── */
+.editor-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.editor-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px 24px;
+}
+.editor-form .field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.editor-form input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  outline: none;
+  margin-bottom: 16px;
+}
+.editor-form input[type="text"]:focus { border-color: var(--accent); }
+.editor-form textarea {
+  flex: 1;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  margin-bottom: 16px;
+  font-family: var(--font);
+}
+.editor-form textarea:focus { border-color: var(--accent); }
+.reminder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.reminder-row label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.reminder-row input[type="datetime-local"] {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  outline: none;
+}
+.reminder-row input[type="datetime-local"]:focus { border-color: var(--accent); }
+.editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Toast ── */
+.toast-container {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--bg-primary);
+  border: 1px solid var(--reminder);
+  border-left: 4px solid var(--reminder);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 360px;
+  animation: slideIn 0.3s ease;
+  cursor: pointer;
+}
+.toast-text { font-size: 0.85rem; flex: 1; }
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  padding: 0 2px;
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* ── Modal (mobile editor) ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-content {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+}
+.modal-content .editor-form { padding: 0; height: auto; }
+.modal-content textarea { min-height: 200px; flex: none; }
+
+/* ── Import file input (hidden) ── */
+#import-file { display: none; }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+.empty-state p { font-size: 0.9rem; margin-bottom: 8px; }
+
+/* ── Responsive: Mobile ── */
+@media (max-width: 767px) {
+  .header { padding: 10px 12px; }
+  .main { flex-direction: column; height: auto; min-height: calc(100vh - 57px); }
+  .panel-list { width: 100%; min-width: auto; border-right: none; flex: 1; }
+  .panel-editor { display: none; }
+  .search-wrapper { max-width: none; order: 10; flex-basis: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <h1>MemoKeep</h1>
+  <div class="search-wrapper" role="search">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="search-input" placeholder="검색..." aria-label="메모 검색">
+  </div>
+  <div class="header-actions">
+    <button class="btn" id="btn-import" aria-label="가져오기">📥 가져오기</button>
+    <button class="btn" id="btn-export" aria-label="내보내기">📤 내보내기</button>
+  </div>
+  <input type="file" id="import-file" accept=".json">
+</header>
+
+<!-- Main -->
+<main class="main">
+  <!-- Left: Memo List -->
+  <section class="panel-list">
+    <div class="list-toolbar">
+      <button class="btn btn-primary" id="btn-new" aria-label="새 메모">+ 새 메모</button>
+      <span class="memo-count" id="memo-count"></span>
+    </div>
+    <div class="memo-list" id="memo-list"></div>
+  </section>
+
+  <!-- Right: Editor (desktop) -->
+  <aside class="panel-editor" id="panel-editor">
+    <div class="editor-empty" id="editor-empty">메모를 선택하거나 새 메모를 만드세요</div>
+    <form class="editor-form" id="editor-form" style="display:none" autocomplete="off">
+      <label class="field-label" for="editor-title">제목</label>
+      <input type="text" id="editor-title" placeholder="제목 입력...">
+      <label class="field-label" for="editor-body">내용</label>
+      <textarea id="editor-body" placeholder="내용을 입력하세요..."></textarea>
+      <div class="reminder-row">
+        <label for="editor-reminder">🔔 리마인더</label>
+        <input type="datetime-local" id="editor-reminder">
+        <button type="button" class="btn" id="btn-clear-reminder" style="font-size:0.75rem;padding:4px 8px">해제</button>
+      </div>
+      <div class="editor-actions">
+        <button type="button" class="btn btn-danger" id="btn-delete-editor" aria-label="삭제">삭제</button>
+        <button type="button" class="btn" id="btn-cancel-editor">취소</button>
+        <button type="submit" class="btn btn-primary">저장</button>
+      </div>
+      <input type="hidden" id="editor-id">
+    </form>
+  </aside>
+</main>
+
+<!-- Modal (mobile editor) -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-content">
+    <form class="editor-form" id="modal-form" autocomplete="off">
+      <label class="field-label" for="modal-title">제목</label>
+      <input type="text" id="modal-title" placeholder="제목 입력...">
+      <label class="field-label" for="modal-body">내용</label>
+      <textarea id="modal-body" placeholder="내용을 입력하세요..."></textarea>
+      <div class="reminder-row">
+        <label for="modal-reminder">🔔 리마인더</label>
+        <input type="datetime-local" id="modal-reminder">
+        <button type="button" class="btn" id="btn-clear-reminder-modal" style="font-size:0.75rem;padding:4px 8px">해제</button>
+      </div>
+      <div class="editor-actions">
+        <button type="button" class="btn btn-danger" id="btn-delete-modal" aria-label="삭제">삭제</button>
+        <button type="button" class="btn" id="btn-cancel-modal">취소</button>
+        <button type="submit" class="btn btn-primary">저장</button>
+      </div>
+      <input type="hidden" id="modal-id">
+    </form>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   Utility
+   ════════════════════════════════════════════════════════ */
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '방금 전';
+  if (mins < 60) return `${mins}분 전`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}일 전`;
+  return new Date(dateStr).toLocaleDateString('ko-KR');
+}
+
+function formatReminderDate(dateStr) {
+  const d = new Date(dateStr);
+  return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function toLocalDatetimeString(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/* ════════════════════════════════════════════════════════
+   MemoStore
+   ════════════════════════════════════════════════════════ */
+class MemoStore {
+  constructor() {
+    this._listeners = new Set();
+    this._memos = this._load();
+  }
+
+  // ── CRUD ──
+  getAll() {
+    return [...this._memos].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  }
+
+  getById(id) {
+    return this._memos.find(m => m.id === id) || null;
+  }
+
+  create({ title = '', body = '' }) {
+    const now = new Date().toISOString();
+    const memo = {
+      id: crypto.randomUUID(),
+      title,
+      body,
+      createdAt: now,
+      updatedAt: now,
+      reminder: { datetime: null, reminderFired: false }
+    };
+    this._memos.push(memo);
+    this._persist();
+    return memo;
+  }
+
+  update(id, fields) {
+    const memo = this.getById(id);
+    if (!memo) return null;
+    if ('title' in fields) memo.title = fields.title;
+    if ('body' in fields) memo.body = fields.body;
+    if ('reminder' in fields) memo.reminder = fields.reminder;
+    memo.updatedAt = new Date().toISOString();
+    this._persist();
+    return memo;
+  }
+
+  delete(id) {
+    this._memos = this._memos.filter(m => m.id !== id);
+    this._persist();
+  }
+
+  // ── Reminder ──
+  setReminder(id, datetime) {
+    const memo = this.getById(id);
+    if (!memo) return null;
+    memo.reminder = { datetime, reminderFired: false };
+    memo.updatedAt = new Date().toISOString();
+    this._persist();
+    return memo;
+  }
+
+  clearReminder(id) {
+    const memo = this.getById(id);
+    if (!memo) return null;
+    memo.reminder = { datetime: null, reminderFired: false };
+    memo.updatedAt = new Date().toISOString();
+    this._persist();
+    return memo;
+  }
+
+  markFired(id) {
+    const memo = this.getById(id);
+    if (!memo) return;
+    memo.reminder.reminderFired = true;
+    this._persist();
+  }
+
+  // ── Query ──
+  search(query) {
+    if (!query) return this.getAll();
+    const q = query.toLowerCase();
+    return this.getAll().filter(m =>
+      m.title.toLowerCase().includes(q) || m.body.toLowerCase().includes(q)
+    );
+  }
+
+  getDueReminders() {
+    const now = new Date();
+    return this._memos.filter(m =>
+      m.reminder.datetime &&
+      !m.reminder.reminderFired &&
+      new Date(m.reminder.datetime) <= now
+    );
+  }
+
+  // ── Import/Export ──
+  exportJSON() {
+    return JSON.stringify({
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      memos: this._memos
+    }, null, 2);
+  }
+
+  importJSON(jsonString) {
+    const data = JSON.parse(jsonString);
+    if (data.version !== 1 || !Array.isArray(data.memos)) {
+      throw new Error('Invalid backup format');
+    }
+    for (const m of data.memos) {
+      if (!m.id || typeof m.title !== 'string' || typeof m.body !== 'string') {
+        throw new Error('Invalid memo data');
+      }
+      if (!m.reminder || typeof m.reminder.datetime === 'undefined') {
+        m.reminder = { datetime: null, reminderFired: false };
+      }
+    }
+    this._memos = data.memos;
+    this._persist();
+  }
+
+  // ── Observer ──
+  onChange(cb) {
+    this._listeners.add(cb);
+    return () => this._listeners.delete(cb);
+  }
+
+  _persist() {
+    try {
+      localStorage.setItem('memoapp_data', JSON.stringify({ memos: this._memos }));
+    } catch (e) {
+      console.error('localStorage write failed:', e);
+    }
+    this._listeners.forEach(cb => cb());
+  }
+
+  _load() {
+    try {
+      const raw = localStorage.getItem('memoapp_data');
+      if (!raw) return [];
+      const data = JSON.parse(raw);
+      return Array.isArray(data.memos) ? data.memos : [];
+    } catch {
+      return [];
+    }
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   ReminderService
+   ════════════════════════════════════════════════════════ */
+class ReminderService {
+  constructor(memoStore, onNotify) {
+    this._store = memoStore;
+    this._onNotify = onNotify; // callback(memo) for toast
+    this._pollTimer = null;
+  }
+
+  start() {
+    this._check();
+    this._pollTimer = setInterval(() => this._check(), 60000);
+  }
+
+  stop() {
+    if (this._pollTimer) clearInterval(this._pollTimer);
+    this._pollTimer = null;
+  }
+
+  _check() {
+    const due = this._store.getDueReminders();
+    for (const memo of due) {
+      this._notify(memo);
+      this._store.markFired(memo.id);
+    }
+  }
+
+  _notify(memo) {
+    const title = memo.title || '제목 없음';
+    const body = `"${title}" 리마인더 시간입니다`;
+
+    // Web Notification
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      try {
+        new Notification('🔔 MemoKeep', { body, icon: '' });
+      } catch { /* fallback below */ }
+    }
+
+    // Always show toast as in-app fallback
+    if (this._onNotify) this._onNotify(memo, body);
+  }
+
+  static isSupported() {
+    return typeof Notification !== 'undefined';
+  }
+
+  static async requestPermission() {
+    if (!ReminderService.isSupported()) return 'denied';
+    return Notification.requestPermission();
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   UIController
+   ════════════════════════════════════════════════════════ */
+class UIController {
+  constructor(memoStore, reminderService) {
+    this._store = memoStore;
+    this._reminder = reminderService;
+    this._activeId = null;
+    this._searchQuery = '';
+    this._searchTimer = null;
+    this._isMobile = window.innerWidth < 768;
+  }
+
+  init() {
+    // DOM refs
+    this.$list = document.getElementById('memo-list');
+    this.$count = document.getElementById('memo-count');
+    this.$editorEmpty = document.getElementById('editor-empty');
+    this.$editorForm = document.getElementById('editor-form');
+    this.$editorTitle = document.getElementById('editor-title');
+    this.$editorBody = document.getElementById('editor-body');
+    this.$editorReminder = document.getElementById('editor-reminder');
+    this.$editorId = document.getElementById('editor-id');
+    this.$modalOverlay = document.getElementById('modal-overlay');
+    this.$modalForm = document.getElementById('modal-form');
+    this.$modalTitle = document.getElementById('modal-title');
+    this.$modalBody = document.getElementById('modal-body');
+    this.$modalReminder = document.getElementById('modal-reminder');
+    this.$modalId = document.getElementById('modal-id');
+    this.$toastContainer = document.getElementById('toast-container');
+    this.$searchInput = document.getElementById('search-input');
+
+    this._bindEvents();
+    this.renderMemoList();
+  }
+
+  _bindEvents() {
+    // New memo
+    document.getElementById('btn-new').addEventListener('click', () => this.openEditor());
+
+    // List click delegation
+    this.$list.addEventListener('click', (e) => this._onListClick(e));
+
+    // Desktop editor form
+    this.$editorForm.addEventListener('submit', (e) => { e.preventDefault(); this._onEditorSubmit(false); });
+    document.getElementById('btn-cancel-editor').addEventListener('click', () => this.closeEditor());
+    document.getElementById('btn-delete-editor').addEventListener('click', () => this._onDelete(false));
+    document.getElementById('btn-clear-reminder').addEventListener('click', () => { this.$editorReminder.value = ''; });
+
+    // Modal form
+    this.$modalForm.addEventListener('submit', (e) => { e.preventDefault(); this._onEditorSubmit(true); });
+    document.getElementById('btn-cancel-modal').addEventListener('click', () => this.closeEditor());
+    document.getElementById('btn-delete-modal').addEventListener('click', () => this._onDelete(true));
+    document.getElementById('btn-clear-reminder-modal').addEventListener('click', () => { this.$modalReminder.value = ''; });
+
+    // Modal backdrop close
+    this.$modalOverlay.addEventListener('click', (e) => {
+      if (e.target === this.$modalOverlay) this.closeEditor();
+    });
+
+    // Escape to close
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.closeEditor();
+    });
+
+    // Search
+    this.$searchInput.addEventListener('input', (e) => this._onSearch(e));
+
+    // Import/Export
+    document.getElementById('btn-export').addEventListener('click', () => this.handleExport());
+    document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+    document.getElementById('import-file').addEventListener('change', (e) => this.handleImport(e));
+
+    // Responsive
+    window.addEventListener('resize', () => { this._isMobile = window.innerWidth < 768; });
+  }
+
+  // ── Rendering ──
+  renderMemoList() {
+    const memos = this._searchQuery ? this._store.search(this._searchQuery) : this._store.getAll();
+    this.$count.textContent = `${memos.length}개`;
+
+    if (memos.length === 0) {
+      this.$list.innerHTML = `<div class="empty-state"><p>${this._searchQuery ? '검색 결과가 없습니다' : '메모가 없습니다'}</p>${this._searchQuery ? '' : '<p style="font-size:0.8rem">+ 새 메모를 클릭하여 시작하세요</p>'}</div>`;
+      return;
+    }
+
+    this.$list.innerHTML = memos.map(m => {
+      const title = escapeHTML(m.title || '제목 없음');
+      const body = escapeHTML(m.body || '');
+      const isActive = m.id === this._activeId;
+      let reminderHTML = '';
+      if (m.reminder.datetime) {
+        const fired = m.reminder.reminderFired;
+        reminderHTML = `<span class="reminder-badge${fired ? ' fired' : ''}">🔔 ${formatReminderDate(m.reminder.datetime)}</span>`;
+      }
+      return `<div class="memo-card${isActive ? ' active' : ''}" data-id="${m.id}" data-action="select">
+        <div class="memo-card-header">
+          <span class="memo-card-title">${title}</span>
+          <button class="memo-card-delete" data-action="delete" aria-label="삭제">✕</button>
+        </div>
+        <div class="memo-card-body">${body}</div>
+        <div class="memo-card-footer">${reminderHTML}<span>${timeAgo(m.updatedAt)}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Editor ──
+  openEditor(id) {
+    const memo = id ? this._store.getById(id) : null;
+    this._activeId = memo ? memo.id : null;
+
+    if (this._isMobile) {
+      this.$modalTitle.value = memo ? memo.title : '';
+      this.$modalBody.value = memo ? memo.body : '';
+      this.$modalReminder.value = memo ? toLocalDatetimeString(memo.reminder.datetime) : '';
+      this.$modalId.value = memo ? memo.id : '';
+      this.$modalOverlay.classList.add('open');
+      this.$modalTitle.focus();
+    } else {
+      this.$editorTitle.value = memo ? memo.title : '';
+      this.$editorBody.value = memo ? memo.body : '';
+      this.$editorReminder.value = memo ? toLocalDatetimeString(memo.reminder.datetime) : '';
+      this.$editorId.value = memo ? memo.id : '';
+      this.$editorEmpty.style.display = 'none';
+      this.$editorForm.style.display = 'flex';
+      this.$editorTitle.focus();
+    }
+
+    this.renderMemoList();
+  }
+
+  closeEditor() {
+    this._activeId = null;
+    this.$editorEmpty.style.display = 'flex';
+    this.$editorForm.style.display = 'none';
+    this.$modalOverlay.classList.remove('open');
+    this.renderMemoList();
+  }
+
+  // ── Events ──
+  _onListClick(e) {
+    const deleteBtn = e.target.closest('[data-action="delete"]');
+    if (deleteBtn) {
+      e.stopPropagation();
+      const id = deleteBtn.closest('[data-id]')?.dataset.id;
+      if (id && confirm('이 메모를 삭제하시겠습니까?')) {
+        this._store.delete(id);
+        if (this._activeId === id) this.closeEditor();
+      }
+      return;
+    }
+    const card = e.target.closest('[data-action="select"]');
+    if (card) {
+      this.openEditor(card.dataset.id);
+    }
+  }
+
+  async _onEditorSubmit(isModal) {
+    const $title = isModal ? this.$modalTitle : this.$editorTitle;
+    const $body = isModal ? this.$modalBody : this.$editorBody;
+    const $reminder = isModal ? this.$modalReminder : this.$editorReminder;
+    const $id = isModal ? this.$modalId : this.$editorId;
+
+    const title = $title.value.trim();
+    const body = $body.value.trim();
+    const reminderVal = $reminder.value;
+    const existingId = $id.value;
+
+    if (!title && !body) return;
+
+    // Request notification permission on first reminder set
+    if (reminderVal && ReminderService.isSupported() && Notification.permission === 'default') {
+      await ReminderService.requestPermission();
+    }
+
+    let memo;
+    if (existingId) {
+      const existing = this._store.getById(existingId);
+      const oldDatetime = existing?.reminder?.datetime ?? null;
+      const newDatetime = reminderVal ? new Date(reminderVal).toISOString() : null;
+      const fired = (newDatetime === oldDatetime) ? (existing?.reminder?.reminderFired ?? false) : false;
+      const reminder = { datetime: newDatetime, reminderFired: fired };
+      memo = this._store.update(existingId, { title, body, reminder });
+    } else {
+      memo = this._store.create({ title, body });
+      if (reminderVal) {
+        this._store.setReminder(memo.id, new Date(reminderVal).toISOString());
+      }
+    }
+
+    if (isModal) {
+      this.$modalOverlay.classList.remove('open');
+    }
+    if (memo) {
+      this._activeId = memo.id;
+      this.openEditor(memo.id);
+    }
+  }
+
+  _onDelete(isModal) {
+    const $id = isModal ? this.$modalId : this.$editorId;
+    const id = $id.value;
+    if (!id) return;
+    if (confirm('이 메모를 삭제하시겠습니까?')) {
+      this._store.delete(id);
+      this.closeEditor();
+    }
+  }
+
+  _onSearch(e) {
+    clearTimeout(this._searchTimer);
+    this._searchTimer = setTimeout(() => {
+      this._searchQuery = e.target.value.trim();
+      this.renderMemoList();
+    }, 300);
+  }
+
+  // ── Toast ──
+  showToast(message, memoId) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<span class="toast-text">🔔 ${escapeHTML(message)}</span><button class="toast-close" aria-label="닫기">✕</button>`;
+
+    toast.querySelector('.toast-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      toast.remove();
+    });
+    if (memoId) {
+      toast.addEventListener('click', () => {
+        this.openEditor(memoId);
+        toast.remove();
+      });
+    }
+
+    this.$toastContainer.appendChild(toast);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 5000);
+  }
+
+  // ── Import/Export ──
+  handleExport() {
+    const json = this._store.exportJSON();
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `memokeep_${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!confirm('현재 메모가 모두 교체됩니다. 계속하시겠습니까?')) {
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        this._store.importJSON(reader.result);
+        this.closeEditor();
+        this.showToast('가져오기 완료');
+      } catch (err) {
+        alert('가져오기 실패: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   App
+   ════════════════════════════════════════════════════════ */
+class App {
+  init() {
+    const store = new MemoStore();
+    const ui = new UIController(store, null);
+
+    const reminder = new ReminderService(store, (memo, message) => {
+      ui.showToast(message, memo.id);
+    });
+
+    ui._reminder = reminder;
+    ui.init();
+
+    store.onChange(() => ui.renderMemoList());
+    reminder.start();
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) reminder._check();
+    });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => new App().init());
+</script>
+</body>
+</html>
