@@ -1235,7 +1235,8 @@ class ReminderManager {
     try {
       this._storage.save('reminders', this._reminders);
     } catch (e) {
-      if (this._bannerCallback) this._bannerCallback(e.message);
+      if (this._onError) this._onError(e.message);
+      else if (this._bannerCallback) this._bannerCallback(e.message);
       return;
     }
     this._listeners.forEach(cb => cb());
@@ -1476,9 +1477,13 @@ class MemoEditorView {
       this._renderMemoReminders();
     });
 
-    // Keyboard shortcut
+    // Keyboard shortcuts (Escape=close, Ctrl+Enter=save)
     this._modal.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') this.close();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        this._save();
+      }
     });
   }
 
@@ -1935,6 +1940,10 @@ class App {
 
       modal.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') modal.classList.remove('visible');
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('btn-save-reminder').click();
+        }
       });
 
       document.getElementById('btn-save-reminder').addEventListener('click', () => {
@@ -1963,10 +1972,6 @@ class App {
         }
       });
     }
-  }
-
-  _toLocalDateStr(d) {
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
   _updateThemeButton() {
